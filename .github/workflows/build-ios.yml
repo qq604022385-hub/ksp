@@ -21,7 +21,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Show toolchain
@@ -32,6 +32,8 @@ jobs:
         run: python3 Scripts/validate_source.py
       - name: Run protocol and model tests
         run: swift test --package-path Packages/KankeCore
+      - name: Prepare pinned FFmpeg iPhone and simulator dependencies
+        run: python3 Scripts/prepare_player.py
       - name: Build simulator app
         env:
           APP_BUNDLE_ID: ${{ inputs.bundle_id || 'local.kanke.player' }}

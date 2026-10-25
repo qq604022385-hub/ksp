@@ -74,7 +74,7 @@ final class PlayerController: ObservableObject {
             UIAction(title: item.title, state: index == episode ? .on : .off) { _ in onEpisode(index) }
         })
         view.nextButton.isEnabled = episodes.indices.contains(episode + 1)
-        view.next = onNext
+        view.onNextEpisode = onNext
     }
 
     fileprivate func receive(_ state: KSPlayerState, token: UUID) {
@@ -113,7 +113,7 @@ final class PlayerController: ObservableObject {
         view.statusLabel.text = message; view.statusLabel.isHidden = false
     }
     func close() {
-        stop(); onBack = nil; view.next = nil
+        stop(); onBack = nil; view.onNextEpisode = nil
         view.sourceButton.menu = nil; view.episodeButton.menu = nil
     }
 }
@@ -146,7 +146,7 @@ final class KankeVideoPlayerView: IOSVideoPlayerView {
     let sourceButton = UIButton(type: .system)
     let episodeButton = UIButton(type: .system)
     let nextButton = UIButton(type: .system)
-    var next: (() -> Void)?
+    var onNextEpisode: (() -> Void)?
     var fullScreenChanged: ((Bool) -> Void)?
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -158,7 +158,7 @@ final class KankeVideoPlayerView: IOSVideoPlayerView {
         }
         sourceButton.showsMenuAsPrimaryAction = true
         episodeButton.showsMenuAsPrimaryAction = true
-        nextButton.addAction(UIAction { [weak self] _ in self?.next?() }, for: .touchUpInside)
+        nextButton.addAction(UIAction { [weak self] _ in self?.onNextEpisode?() }, for: .touchUpInside)
         sourceButton.isHidden = true; episodeButton.isHidden = true; nextButton.isHidden = true
         toolBar.pipButton.isHidden = true
         statusLabel.textColor = .white

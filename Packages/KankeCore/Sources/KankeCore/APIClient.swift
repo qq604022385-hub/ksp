@@ -70,11 +70,11 @@ public actor APIClient {
         return data
     }
 
-    public func categories() async throws -> [Category] {
+    public func categories() async throws -> [VideoCategory] {
         let config = try await configuration()
         let url = try ProtocolCodec.endpoint(config.contentBase, path: "api.php/localhost/Category")
         let body = try await request(URLRequest(url: url))
-        return try JSONDecoder().decode([Category].self, from: ProtocolCodec.jsonData(body, key: config.responseKey)).filter(\.enabled)
+        return try JSONDecoder().decode([VideoCategory].self, from: ProtocolCodec.jsonData(body, key: config.responseKey)).filter { $0.enabled }
     }
 
     public func catalog(category: String, page: Int = 1, search: String = "") async throws -> CatalogPage {

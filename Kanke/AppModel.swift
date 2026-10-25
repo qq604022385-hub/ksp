@@ -5,7 +5,7 @@ import KankeCore
 @MainActor
 final class AppModel: ObservableObject {
     let api = APIClient()
-    @Published var categories: [Category] = []
+    @Published var categories: [KankeCore.VideoCategory] = []
     @Published var category = "tvplay"
     @Published var searchText = ""
     @Published var search = ""

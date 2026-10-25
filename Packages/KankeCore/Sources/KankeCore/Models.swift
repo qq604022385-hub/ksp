@@ -50,7 +50,7 @@ public struct VideoSummary: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-public struct Category: Decodable, Identifiable, Sendable {
+public struct VideoCategory: Decodable, Identifiable, Sendable {
     public let id: String
     public let name: String
     public let enabled: Bool

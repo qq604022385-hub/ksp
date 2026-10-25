@@ -1,4 +1,8 @@
 import XCTest
+#if canImport(ObjectiveC)
+// Exercise the same Apple SDK namespace that also exports ObjectiveC.Category.
+import ObjectiveC
+#endif
 @testable import KankeCore
 
 final class KankeCoreTests: XCTestCase {
@@ -63,7 +67,9 @@ final class KankeCoreTests: XCTestCase {
         XCTAssertThrowsError(try JSONDecoder().decode(PlaybackResponse.self, from: Data(#"{"code":200,"url":"javascript:alert(1)"}"#.utf8)))
     }
     func testCategoryStatusAcceptsStringAndNumber() throws {
-        let values = try JSONDecoder().decode([Category].self, from: fixture("categories"))
-        XCTAssertEqual(values.filter(\.enabled).map(\.id), ["tvplay", "movie"])
+        let data = try fixture("categories")
+        let values: [KankeCore.VideoCategory] = try JSONDecoder().decode([KankeCore.VideoCategory].self, from: data)
+        let enabledIDs: [String] = values.filter { $0.enabled }.map { $0.id }
+        XCTAssertEqual(enabledIDs, ["tvplay", "movie"])
     }
 }

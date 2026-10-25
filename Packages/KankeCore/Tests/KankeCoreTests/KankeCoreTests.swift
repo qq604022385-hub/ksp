@@ -28,9 +28,14 @@ final class KankeCoreTests: XCTestCase {
         let base = try XCTUnwrap(URL(string: "http://example.com:9001/base/"))
         let value = "source-ab+c/de=="
         let url = try ProtocolCodec.endpoint(base, path: "Client/", query: [("url", value)])
-        XCTAssertEqual(url.path, "/base/Client/")
+        // Foundation URL.path may strip a trailing slash; verify the wire URL.
+        let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        XCTAssertEqual(components.percentEncodedPath, "/base/Client/")
+        XCTAssertTrue(url.absoluteString.hasPrefix("http://example.com:9001/base/Client/?"))
         XCTAssertTrue(url.absoluteString.contains("%2B"))
-        XCTAssertEqual(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first?.value, value)
+        XCTAssertEqual(components.queryItems?.first?.value, value)
+        let noSlash = try ProtocolCodec.endpoint(base, path: "Category")
+        XCTAssertEqual(URLComponents(url: noSlash, resolvingAgainstBaseURL: false)?.percentEncodedPath, "/base/Category")
         XCTAssertThrowsError(try ProtocolCodec.endpoint(URL(string: "file:///tmp")!, path: "Client/"))
     }
     func testPlainAndEncryptedCatalogsUseSameModels() throws {
@@ -63,6 +68,17 @@ final class KankeCoreTests: XCTestCase {
         XCTAssertEqual(response.headers["User-Agent"], "ExamplePlayer/1.0")
         XCTAssertNil(response.headers["Cookie"])
         XCTAssertEqual(response.client, 1)
+        // Include the CRLF combination, which is a single Swift Character,
+        // plus lone controls and an allowed horizontal tab.
+        let cases: [(String, Bool)] = [("\r\n", false), ("\r", false), ("\n", false), ("\0", false), ("\u{7f}", false), ("\t", true)]
+        for (control, allowed) in cases {
+            let value = "left" + control + "right"
+            let object: [String: Any] = ["code": 200, "url": "https://example.com/video.m3u8", "Cookie": value]
+            let data = try JSONSerialization.data(withJSONObject: object)
+            let decoded = try JSONDecoder().decode(PlaybackResponse.self, from: data)
+            if allowed { XCTAssertEqual(decoded.headers["Cookie"], value) }
+            else { XCTAssertNil(decoded.headers["Cookie"], "Rejected control: \(control.debugDescription)") }
+        }
         XCTAssertThrowsError(try JSONDecoder().decode(PlaybackResponse.self, from: Data(#"{"code":403,"msg":"访问被拒绝"}"#.utf8)))
         XCTAssertThrowsError(try JSONDecoder().decode(PlaybackResponse.self, from: Data(#"{"code":200,"url":"javascript:alert(1)"}"#.utf8)))
     }

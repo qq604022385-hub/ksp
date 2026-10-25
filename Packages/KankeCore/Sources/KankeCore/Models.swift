@@ -145,7 +145,13 @@ public struct PlaybackResponse: Decodable, Sendable {
         var fields = [String: String]()
         for (key, name) in [(CodingKeys.UserAgent, "User-Agent"), (.Referer, "Referer"), (.Origin, "Origin"), (.Cookie, "Cookie")] {
             let value = c.text(key)
-            if !value.isEmpty && !value.contains("\r") && !value.contains("\n") { fields[name] = value }
+            // CRLF is one extended grapheme cluster in Swift, so checking for
+            // individual Character("\r") / Character("\n") can miss it.
+            // Inspect scalar values instead; HTTP permits HTAB but not other C0/DEL.
+            let hasInvalidControl = value.unicodeScalars.contains {
+                ($0.value < 0x20 && $0.value != 0x09) || $0.value == 0x7f
+            }
+            if !value.isEmpty && !hasInvalidControl { fields[name] = value }
         }
         headers = fields
     }

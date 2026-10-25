@@ -1,0 +1,71 @@
+{
+  "checked_at_unix": 1792935499.1534255,
+  "bootstrap_http": 200,
+  "settings_http": 200,
+  "catalog_checks": {
+    "category": {
+      "decoded": true,
+      "items": 8
+    },
+    "movie": {
+      "decoded": true,
+      "items": 20
+    },
+    "search": {
+      "decoded": true,
+      "items": 3
+    }
+  },
+  "detail_decoded": true,
+  "source_metadata_entries": 52,
+  "playback_probes": [
+    {
+      "source": "xigua",
+      "code": 200,
+      "has_url": true,
+      "response_keys": [
+        "code",
+        "url",
+        "UserAgent",
+        "Client",
+        "maxClient",
+        "timeout"
+      ],
+      "media_http_status": 200,
+      "hls_header": true,
+      "media_content_type": "application/vnd.apple.mpegurl"
+    },
+    {
+      "source": "wasu",
+      "code": 200,
+      "has_url": true,
+      "response_keys": [
+        "code",
+        "url",
+        "Client",
+        "maxClient",
+        "timeout"
+      ],
+      "media_http_status": 206,
+      "hls_header": false,
+      "media_content_type": "video/mp4"
+    },
+    {
+      "source": "sdm3u8",
+      "code": 200,
+      "has_url": true,
+      "response_keys": [
+        "code",
+        "url",
+        "UserAgent",
+        "Client",
+        "maxClient",
+        "timeout"
+      ],
+      "media_http_status": 206,
+      "hls_header": true,
+      "media_content_type": "application/vnd.apple.mpegurl"
+    }
+  ],
+  "iphone_tested": false
+}

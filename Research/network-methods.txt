@@ -1,0 +1,359 @@
+FILE phone/SplashActivity$getServerUrl$2$1.smali
+.class public final Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1;
+.super Ljava/lang/Object;
+.source "r8-map-id-19b4395d7d83c7414f9484d07362dc20cbff117efb203cb6b96ce9c1323205ab"
+.implements Lokhttp3/Callback;
+.annotation system Ldalvik/annotation/EnclosingMethod;
+value = Lcom/shenma/tvlauncher/phone/SplashActivity;->X(Lq7/e;)Ljava/lang/Object;
+.end annotation
+.annotation system Ldalvik/annotation/InnerClass;
+accessFlags = 0x19
+name = null
+.end annotation
+.field final synthetic a:Lj8/m;
+.method constructor <init>(Lj8/m;)V
+.locals 0
+iput-object p1, p0, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1;->a:Lj8/m;
+invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+return-void
+.end method
+.method public onFailure(Lokhttp3/Call;Ljava/io/IOException;)V
+.locals 1
+const-string v0, "call"
+invoke-static {p1, v0}, Lkotlin/jvm/internal/y;->f(Ljava/lang/Object;Ljava/lang/String;)V
+const-string p1, "e"
+invoke-static {p2, p1}, Lkotlin/jvm/internal/y;->f(Ljava/lang/Object;Ljava/lang/String;)V
+iget-object p1, p0, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1;->a:Lj8/m;
+sget-object p2, Lm7/p;->c:Lm7/p$a;
+sget-object p2, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
+invoke-static {p2}, Lm7/p;->b(Ljava/lang/Object;)Ljava/lang/Object;
+move-result-object p2
+invoke-interface {p1, p2}, Lq7/e;->resumeWith(Ljava/lang/Object;)V
+return-void
+.end method
+.method public onResponse(Lokhttp3/Call;Lokhttp3/Response;)V
+.locals 1
+const-string v0, "call"
+invoke-static {p1, v0}, Lkotlin/jvm/internal/y;->f(Ljava/lang/Object;Ljava/lang/String;)V
+const-string p1, "response"
+invoke-static {p2, p1}, Lkotlin/jvm/internal/y;->f(Ljava/lang/Object;Ljava/lang/String;)V
+invoke-virtual {p2}, Lokhttp3/Response;->code()I
+move-result p1
+const/16 v0, 0xc8
+if-ne p1, v0, :cond_3
+invoke-virtual {p2}, Lokhttp3/Response;->body()Lokhttp3/ResponseBody;
+move-result-object p1
+if-eqz p1, :cond_0
+invoke-virtual {p1}, Lokhttp3/ResponseBody;->string()Ljava/lang/String;
+move-result-object p1
+goto :goto_0
+:cond_0
+const/4 p1, 0x0
+:goto_0
+new-instance p2, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1$onResponse$type$1;
+invoke-direct {p2}, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1$onResponse$type$1;-><init>()V
+invoke-virtual {p2}, Lcom/google/gson/reflect/TypeToken;->getType()Ljava/lang/reflect/Type;
+move-result-object p2
+new-instance v0, Lcom/google/gson/Gson;
+invoke-direct {v0}, Lcom/google/gson/Gson;-><init>()V
+invoke-virtual {v0, p1, p2}, Lcom/google/gson/Gson;->fromJson(Ljava/lang/String;Ljava/lang/reflect/Type;)Ljava/lang/Object;
+move-result-object p1
+const-string p2, "fromJson(...)"
+invoke-static {p1, p2}, Lkotlin/jvm/internal/y;->e(Ljava/lang/Object;Ljava/lang/String;)V
+check-cast p1, Lcom/shenma/tvlauncher/phone/base/BaseResp;
+sget-object p2, Lcom/shenma/tvlauncher/phone/b;->a:Lcom/shenma/tvlauncher/phone/b;
+invoke-virtual {p1}, Lcom/shenma/tvlauncher/phone/base/BaseResp;->getData()Ljava/lang/Object;
+move-result-object v0
+check-cast v0, Lcom/shenma/tvlauncher/entity/ServerEntity;
+if-eqz v0, :cond_1
+invoke-virtual {v0}, Lcom/shenma/tvlauncher/entity/ServerEntity;->getPgdz()Ljava/lang/String;
+move-result-object v0
+if-nez v0, :cond_2
+:cond_1
+const-string v0, ""
+:cond_2
+invoke-virtual {p2, v0}, Lcom/shenma/tvlauncher/phone/b;->g(Ljava/lang/String;)V
+invoke-virtual {p1}, Lcom/shenma/tvlauncher/phone/base/BaseResp;->getData()Ljava/lang/Object;
+move-result-object p1
+check-cast p1, Lcom/shenma/tvlauncher/entity/ServerEntity;
+invoke-virtual {p2, p1}, Lcom/shenma/tvlauncher/phone/b;->h(Lcom/shenma/tvlauncher/entity/ServerEntity;)V
+iget-object p1, p0, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1;->a:Lj8/m;
+sget-object p2, Lm7/p;->c:Lm7/p$a;
+sget-object p2, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;
+invoke-static {p2}, Lm7/p;->b(Ljava/lang/Object;)Ljava/lang/Object;
+move-result-object p2
+invoke-interface {p1, p2}, Lq7/e;->resumeWith(Ljava/lang/Object;)V
+return-void
+:cond_3
+iget-object p1, p0, Lcom/shenma/tvlauncher/phone/SplashActivity$getServerUrl$2$1;->a:Lj8/m;
+sget-object p2, Lm7/p;->c:Lm7/p$a;
+sget-object p2, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
+invoke-static {p2}, Lm7/p;->b(Ljava/lang/Object;)Ljava/lang/Object;
+move-result-object p2
+invoke-interface {p1, p2}, Lq7/e;->resumeWith(Ljava/lang/Object;)V
+return-void
+.end method
+FILE utils/g.smali
+.class public Lcom/shenma/tvlauncher/utils/g;
+.super Ljava/lang/Object;
+.source "r8-map-id-19b4395d7d83c7414f9484d07362dc20cbff117efb203cb6b96ce9c1323205ab"
+.method public constructor <init>()V
+.locals 0
+invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+return-void
+.end method
+.method private static a(Ljava/lang/String;)[B
+.locals 5
+invoke-virtual {p0}, Ljava/lang/String;->length()I
+move-result v0
+div-int/lit8 v0, v0, 0x2
+new-array v1, v0, [B
+invoke-virtual {p0}, Ljava/lang/String;->getBytes()[B
+move-result-object p0
+const/4 v2, 0x0
+:goto_0
+if-ge v2, v0, :cond_0
+mul-int/lit8 v3, v2, 0x2
+aget-byte v4, p0, v3
+add-int/lit8 v3, v3, 0x1
+aget-byte v3, p0, v3
+invoke-static {v4, v3}, Lcom/shenma/tvlauncher/utils/g;->i(BB)B
+move-result v3
+aput-byte v3, v1, v2
+add-int/lit8 v2, v2, 0x1
+goto :goto_0
+:cond_0
+return-object v1
+.end method
+.method private static b([BLjava/lang/String;)[B
+.locals 7
+invoke-static {p1}, Lcom/shenma/tvlauncher/utils/g;->g(Ljava/lang/String;)[B
+move-result-object p1
+array-length v0, p0
+new-array v0, v0, [B
+const/4 v1, 0x0
+move v2, v1
+move v3, v2
+:goto_0
+array-length v4, p0
+if-ge v1, v4, :cond_0
+add-int/lit8 v2, v2, 0x1
+and-int/lit16 v2, v2, 0xff
+aget-byte v4, p1, v2
+and-int/lit16 v5, v4, 0xff
+add-int/2addr v5, v3
+and-int/lit16 v3, v5, 0xff
+aget-byte v5, p1, v3
+aput-byte v5, p1, v2
+aput-byte v4, p1, v3
+aget-byte v5, p0, v1
+aget-byte v6, p1, v2
+and-int/lit16 v6, v6, 0xff
+and-int/lit16 v4, v4, 0xff
+add-int/2addr v6, v4
+and-int/lit16 v4, v6, 0xff
+aget-byte v4, p1, v4
+xor-int/2addr v4, v5
+int-to-byte v4, v4
+aput-byte v4, v0, v1
+add-int/lit8 v1, v1, 0x1
+goto :goto_0
+:cond_0
+return-object v0
+.end method
+.method private static c([B)Ljava/lang/String;
+.locals 4
+new-instance v0, Ljava/lang/StringBuffer;
+array-length v1, p0
+invoke-direct {v0, v1}, Ljava/lang/StringBuffer;-><init>(I)V
+array-length v1, p0
+const/4 v2, 0x0
+:goto_0
+if-ge v2, v1, :cond_0
+aget-byte v3, p0, v2
+int-to-char v3, v3
+invoke-virtual {v0, v3}, Ljava/lang/StringBuffer;->append(C)Ljava/lang/StringBuffer;
+add-int/lit8 v2, v2, 0x1
+goto :goto_0
+:cond_0
+invoke-virtual {v0}, Ljava/lang/StringBuffer;->toString()Ljava/lang/String;
+move-result-object p0
+return-object p0
+.end method
+.method public static d(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+.locals 1
+if-eqz p0, :cond_1
+if-nez p1, :cond_0
+goto :goto_0
+:cond_0
+new-instance v0, Ljava/lang/String;
+invoke-static {p0}, Lcom/shenma/tvlauncher/utils/g;->a(Ljava/lang/String;)[B
+move-result-object p0
+invoke-static {p0, p1}, Lcom/shenma/tvlauncher/utils/g;->b([BLjava/lang/String;)[B
+move-result-object p0
+invoke-direct {v0, p0}, Ljava/lang/String;-><init>([B)V
+return-object v0
+:cond_1
+:goto_0
+const/4 p0, 0x0
+return-object p0
+.end method
+.method public static e(Ljava/lang/String;Ljava/lang/String;)[B
+.locals 0
+if-eqz p0, :cond_1
+if-nez p1, :cond_0
+goto :goto_0
+:cond_0
+invoke-virtual {p0}, Ljava/lang/String;->getBytes()[B
+move-result-object p0
+invoke-static {p0, p1}, Lcom/shenma/tvlauncher/utils/g;->b([BLjava/lang/String;)[B
+move-result-object p0
+return-object p0
+:cond_1
+:goto_0
+const/4 p0, 0x0
+return-object p0
+.end method
+.method public static f(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+.locals 0
+if-eqz p0, :cond_1
+if-nez p1, :cond_0
+goto :goto_0
+:cond_0
+invoke-static {p0, p1}, Lcom/shenma/tvlauncher/utils/g;->e(Ljava/lang/String;Ljava/lang/String;)[B
+move-result-object p0
+invoke-static {p0}, Lcom/shenma/tvlauncher/utils/g;->c([B)Ljava/lang/String;
+move-result-object p0
+invoke-static {p0}, Lcom/shenma/tvlauncher/utils/g;->h(Ljava/lang/String;)Ljava/lang/String;
+move-result-object p0
+return-object p0
+:cond_1
+:goto_0
+const/4 p0, 0x0
+return-object p0
+.end method
+.method private static g(Ljava/lang/String;)[B
+.locals 8
+invoke-virtual {p0}, Ljava/lang/String;->getBytes()[B
+move-result-object p0
+const/16 v0, 0x100
+new-array v1, v0, [B
+const/4 v2, 0x0
+move v3, v2
+:goto_0
+if-ge v3, v0, :cond_0
+int-to-byte v4, v3
+aput-byte v4, v1, v3
+add-int/lit8 v3, v3, 0x1
+goto :goto_0
+:cond_0
+if-eqz p0, :cond_3
+array-length v3, p0
+if-nez v3, :cond_1
+goto :goto_2
+:cond_1
+move v3, v2
+move v4, v3
+:goto_1
+if-ge v2, v0, :cond_2
+aget-byte v5, p0, v3
+and-int/lit16 v5, v5, 0xff
+aget-byte v6, v1, v2
+and-int/lit16 v7, v6, 0xff
+add-int/2addr v5, v7
+add-int/2addr v5, v4
+and-int/lit16 v4, v5, 0xff
+aget-byte v5, v1, v4
+aput-byte v5, v1, v2
+aput-byte v6, v1, v4
+add-int/lit8 v3, v3, 0x1
+array-length v5, p0
+rem-int/2addr v3, v5
+add-int/lit8 v2, v2, 0x1
+goto :goto_1
+:cond_2
+return-object v1
+:cond_3
+:goto_2
+const/4 p0, 0x0
+return-object p0
+.end method
+.method private static h(Ljava/lang/String;)Ljava/lang/String;
+.locals 5
+const-string v0, ""
+const/4 v1, 0x0
+:goto_0
+invoke-virtual {p0}, Ljava/lang/String;->length()I
+move-result v2
+if-ge v1, v2, :cond_1
+invoke-virtual {p0, v1}, Ljava/lang/String;->charAt(I)C
+move-result v2
+and-int/lit16 v2, v2, 0xff
+invoke-static {v2}, Ljava/lang/Integer;->toHexString(I)Ljava/lang/String;
+move-result-object v2
+invoke-virtual {v2}, Ljava/lang/String;->length()I
+move-result v3
+const/4 v4, 0x1
+if-ne v3, v4, :cond_0
+new-instance v3, Ljava/lang/StringBuilder;
+const/16 v4, 0x30
+invoke-static {v4}, Ljava/lang/String;->valueOf(C)Ljava/lang/String;
+move-result-object v4
+invoke-direct {v3, v4}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+move-result-object v2
+:cond_0
+new-instance v3, Ljava/lang/StringBuilder;
+invoke-static {v0}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
+move-result-object v0
+invoke-direct {v3, v0}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+invoke-virtual {v3, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+move-result-object v0
+add-int/lit8 v1, v1, 0x1
+goto :goto_0
+:cond_1
+return-object v0
+.end method
+.method private static i(BB)B
+.locals 6
+new-instance v0, Ljava/lang/StringBuilder;
+invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+const-string v1, "0x"
+invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+new-instance v2, Ljava/lang/String;
+const/4 v3, 0x1
+new-array v4, v3, [B
+const/4 v5, 0x0
+aput-byte p0, v4, v5
+invoke-direct {v2, v4}, Ljava/lang/String;-><init>([B)V
+invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+move-result-object p0
+invoke-static {p0}, Ljava/lang/Byte;->decode(Ljava/lang/String;)Ljava/lang/Byte;
+move-result-object p0
+invoke-virtual {p0}, Ljava/lang/Byte;->byteValue()B
+move-result p0
+int-to-char p0, p0
+shl-int/lit8 p0, p0, 0x4
+int-to-char p0, p0
+new-instance v0, Ljava/lang/StringBuilder;
+invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+new-instance v1, Ljava/lang/String;
+new-array v2, v3, [B
+aput-byte p1, v2, v5
+invoke-direct {v1, v2}, Ljava/lang/String;-><init>([B)V
+invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+move-result-object p1
+invoke-static {p1}, Ljava/lang/Byte;->decode(Ljava/lang/String;)Ljava/lang/Byte;
+move-result-object p1
+invoke-virtual {p1}, Ljava/lang/Byte;->byteValue()B
+move-result p1
+int-to-char p1, p1
+xor-int/2addr p0, p1
+int-to-byte p0, p0
+return p0
+.end method

@@ -1,0 +1,21 @@
+Kanke iOS source delivery - 2026-10-25 (Asia/Shanghai)
+
+EXECUTED ON WINDOWS:
+- 19 source/project consistency checks passed using Scripts/validate_source.py.
+- Nine Swift files parsed by tree-sitter-swift 0.7.4 / tree-sitter 0.26.0 with no syntax error nodes.
+  This is syntax analysis only, NOT Swift compiler type checking.
+- The GitHub Actions YAML parsed successfully with 10 steps and macos-15 runner.
+- bash -n passed for sign_app.sh and package_ipa.sh.
+- Public endpoint discovery, settings, category, catalog, search and detail requests succeeded.
+- Service response and player metadata RC4 decoding succeeded.
+- Three source resolver requests succeeded. Two HLS playlist headers and one MP4 range response verified.
+  No media URL, cookie value, response key or access credential is included in the evidence report.
+
+NOT EXECUTED HERE:
+- Swift Package's nine XCTest methods (they are run by the supplied GitHub workflow).
+- Xcode simulator/device compilation or archive.
+- GitHub workflow execution, certificate import, code signing or real IPA artifact generation.
+- iPhone/iPad install, AVPlayer rendering, actual audio/video decoding, AirPlay or PiP.
+
+The source contains CI build and artifact validation scripts. These are not evidence that an IPA
+has already been built, signed or installed. The user's own GitHub run is the next compilation gate.

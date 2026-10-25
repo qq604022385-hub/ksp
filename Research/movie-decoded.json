@@ -1,0 +1,169 @@
+{
+  "code": 200,
+  "msg": "",
+  "videonum": 160500,
+  "totalpage": 1605,
+  "pageindex": "1",
+  "data": [
+    {
+      "type": "MOVIE",
+      "title": "冬日奇境",
+      "pic": "https://images.67c6c7a.com/upload/vod/2026-10/p2936108117.webp",
+      "nextlink": "?ac=detail&ids=616969",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "战邮1942",
+      "pic": "https://images.67c6c7a.com/upload/vod/2026-10/p2931769329.webp",
+      "nextlink": "?ac=detail&ids=616970",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "瑞奇老爸",
+      "pic": "https://images.67c6c7a.com/upload/vod/2026-10/p2934920218.webp",
+      "nextlink": "?ac=detail&ids=616971",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "失控长夜",
+      "pic": "https://images.67c6c7a.com/upload/vod/2026-10/p2936899734.webp",
+      "nextlink": "?ac=detail&ids=616972",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "沃德河",
+      "pic": "http://tupian.ffeiimg.com/upload/vod/20260402-1/a8a0d1d48e23451f4b044ad57024f9d8.jpg",
+      "nextlink": "?ac=detail&ids=491444",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "黑球",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2936417029.webp",
+      "nextlink": "?ac=detail&ids=616804",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "冬歇",
+      "pic": "http://img3.doubanio.com/view/photo/s_ratio_poster/public/p2930163687.jpg",
+      "nextlink": "?ac=detail&ids=616853",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "尸变",
+      "pic": "http://img3.doubanio.com/view/photo/s_ratio_poster/public/p2936235070.jpg",
+      "nextlink": "?ac=detail&ids=616852",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "致命录像带混音带",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2935914663.webp",
+      "nextlink": "?ac=detail&ids=611950",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "牛仔杀人狂",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2935549922.webp",
+      "nextlink": "?ac=detail&ids=616803",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "狂鲨风暴",
+      "pic": "http://tupian.ffeiimg.com/upload/vod/20260410-1/2b9c899cd43f644ccbde0e3b251c005c.jpg",
+      "nextlink": "?ac=detail&ids=491460",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "抗击飓风",
+      "pic": "http://vcover-vt-pic.puui.qpic.cn/vcover_vt_pic/0/sdp001000aw229i1792034264/260?imageView2/2/w/178/h/248",
+      "nextlink": "?ac=detail&ids=616666",
+      "state": "1080P",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "血书",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/202610251792910463.jpg",
+      "nextlink": "?ac=detail&ids=616812",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "浴血黑帮真实故事",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2931120801.webp",
+      "nextlink": "?ac=detail&ids=616813",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "茫然女王",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2930593644.webp",
+      "nextlink": "?ac=detail&ids=616814",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "邪灵苏醒",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2931241659.webp",
+      "nextlink": "?ac=detail&ids=616815",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "极乐",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2933259407.webp",
+      "nextlink": "?ac=detail&ids=616816",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "希望囚徒",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/p2936227566.webp",
+      "nextlink": "?ac=detail&ids=616817",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "异变辐射",
+      "pic": "http://images.67c6c7a.com/upload/vod/2026-10/202610241792838933.jpg",
+      "nextlink": "?ac=detail&ids=616802",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE",
+      "title": "空枪",
+      "pic": "http://cos.hxx2023.cc/images/0ed8555e900442c1/2026/10/23/6fc1ff73151171d7.gif",
+      "nextlink": "?ac=detail&ids=616801",
+      "state": "",
+      "score": null
+    }
+  ]
+}

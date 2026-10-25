@@ -1,0 +1,9 @@
+{
+  "code": 200,
+  "url": "https://example.com/video.m3u8",
+  "UserAgent": "ExamplePlayer/1.0",
+  "Referer": "https://example.com/",
+  "Cookie": "invalid\r\nheader",
+  "Client": "1",
+  "maxClient": 2
+}

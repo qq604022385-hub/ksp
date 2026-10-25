@@ -1,0 +1,23 @@
+{
+  "code": 200,
+  "msg": "",
+  "pageindex": 1,
+  "totalpage": 3,
+  "data": [
+    {
+      "title": "示例影片一",
+      "pic": "https://example.com/a.jpg",
+      "nextlink": "?ac=detail&ids=100",
+      "state": "更新至12集",
+      "score": null,
+      "type": "TVPLAY"
+    },
+    {
+      "id": 101,
+      "title": "示例影片二",
+      "pic": "https://example.com/b.jpg",
+      "state": "高清",
+      "score": 8.5
+    }
+  ]
+}

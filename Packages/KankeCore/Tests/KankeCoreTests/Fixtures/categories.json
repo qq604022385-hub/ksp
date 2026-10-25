@@ -1,0 +1,17 @@
+[
+  {
+    "type_en": "tvplay",
+    "type_name": "电视剧",
+    "type_status": 1
+  },
+  {
+    "type_en": "movie",
+    "type_name": "电影",
+    "type_status": "1"
+  },
+  {
+    "type_en": "disabled",
+    "type_name": "隐藏分类",
+    "type_status": 0
+  }
+]

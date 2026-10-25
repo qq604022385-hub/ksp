@@ -1,0 +1,39 @@
+{
+  "code": 200,
+  "id": 100,
+  "title": "示例影片一",
+  "img_url": "https://example.com/a.jpg",
+  "intro": "<p>简介文字</p>",
+  "actor": [
+    "演员甲",
+    "演员乙"
+  ],
+  "type": [
+    "剧情"
+  ],
+  "player": "846fffac52eba53a24ef65dcfba9629ee38155928e7b5f2e94e0c32f900f0ebbda190390b824e2a81f88fd037aa4223e39052e3884d157cc99189cd30ac042fe4fc22efbd97935b4d1ce4e5c77ee32b333034883637f066e59a1e2e6442e468b6a7cc23a811214b6d9e5d315e23b",
+  "videolist": {
+    "sourceA": [
+      {
+        "title": "第1集",
+        "url": "descriptor-a"
+      }
+    ],
+    "sourceB": [
+      {
+        "title": "第1集",
+        "url": "descriptor-b"
+      },
+      {
+        "title": "第2集",
+        "url": "descriptor-b2"
+      }
+    ],
+    "newSource": [
+      {
+        "title": "正片",
+        "url": "descriptor-c"
+      }
+    ]
+  }
+}

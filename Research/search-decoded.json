@@ -1,0 +1,33 @@
+{
+  "code": 200,
+  "msg": "",
+  "videonum": 3,
+  "totalpage": 1,
+  "pageindex": null,
+  "data": [
+    {
+      "type": "TVSHOW",
+      "title": "千禧婴孩档案之人格测试",
+      "pic": "http://puui.qpic.cn/vcover_vt_pic/0/o9l0q3i0lz85cait1469010628.jpg/0",
+      "nextlink": "?ac=detail&ids=512947",
+      "state": "",
+      "score": null
+    },
+    {
+      "type": "MOVIE_4K",
+      "title": "大嘴巴脑力测试",
+      "pic": "http://pic7.iqiyipic.com/image/20260330/81/26/a_100678395_m_601_m19_260_360.webp",
+      "nextlink": "?ac=detail&ids=518779",
+      "state": "大嘴巴脑力测试",
+      "score": null
+    },
+    {
+      "type": "TEACH",
+      "title": "哥本哈根测试",
+      "pic": "http://tupian.ffeiimg.com/upload/vod/20251227-1/3c2f5ae3fde10052e1e59a5154bcafa0.jpg",
+      "nextlink": "?ac=detail&ids=500175",
+      "state": "(08全)",
+      "score": null
+    }
+  ]
+}

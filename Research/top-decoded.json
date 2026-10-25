@@ -1,0 +1,78 @@
+{
+  "msg": "",
+  "code": 200,
+  "data": [
+    {
+      "id": 612536,
+      "tjid": 1,
+      "tjtype": "TVPLAY",
+      "tjinfo": "嫁金钗",
+      "tjstarttime": "2026-10-25 21:08:30",
+      "tjendtime": "2026-10-16 18:43:21",
+      "tjwei": 1,
+      "tjpicurl": "http://img.lzipic.com/upload/vod/20261016-1/10b0bf0733f211e16990ebaf5fb29f60.webp",
+      "tjpicslideurl": "http://liangcang-material.alicdn.com/prod/upload/fd0fd87453784f18b60dfca36e0aef18.webp.jpg",
+      "tjurl": "?ac=detail&ids=612536"
+    },
+    {
+      "id": 42956,
+      "tjid": 4,
+      "tjtype": "COMIC",
+      "tjinfo": "凡人修仙传",
+      "tjstarttime": "2026-10-25 10:57:55",
+      "tjendtime": "2023-08-20 13:09:31",
+      "tjwei": 2,
+      "tjpicurl": "http://i0.hdslb.com/bfs/bangumi/image/6db68114d6095254574fe2901b5dd703a8a42e93.png",
+      "tjpicslideurl": "http://i0.hdslb.com/bfs/bangumi/image/75566f524244af60a24ee9a0424915fa2542d96d.png",
+      "tjurl": "?ac=detail&ids=42956"
+    },
+    {
+      "id": 611967,
+      "tjid": 1,
+      "tjtype": "TVPLAY",
+      "tjinfo": "蒸蒸日上",
+      "tjstarttime": "2026-10-24 20:52:04",
+      "tjendtime": "2026-10-10 22:01:17",
+      "tjwei": 3,
+      "tjpicurl": "http://images.67c6c7a.com/upload/vod/2026-10/p2936476679.webp",
+      "tjpicslideurl": "http://pic5.iqiyipic.com/jisu/20261006/6e/12/af0c1b3c8089213cb0720d71ffe1e088_2260_744.jpg",
+      "tjurl": "?ac=detail&ids=611967"
+    },
+    {
+      "id": 609514,
+      "tjid": 1,
+      "tjtype": "TVPLAY",
+      "tjinfo": "一瓯春",
+      "tjstarttime": "2026-10-24 19:58:01",
+      "tjendtime": "2026-09-17 12:52:18",
+      "tjwei": 4,
+      "tjpicurl": "http://pic3.yzzyimg.online/upload/vod/2026-09-17/202609171789615214.jpg",
+      "tjpicslideurl": "http://pic2.iqiyipic.com/jisu/20260915/6f/d7/fef96665829a98ddf324860d71bf00c3_2260_744.jpg",
+      "tjurl": "?ac=detail&ids=609514"
+    },
+    {
+      "id": 611666,
+      "tjid": 1,
+      "tjtype": "TVPLAY",
+      "tjinfo": "此处通往繁星",
+      "tjstarttime": "2026-10-23 13:45:06",
+      "tjendtime": "2026-10-09 14:01:15",
+      "tjwei": 5,
+      "tjpicurl": "http://images.67c6c7a.com/upload/vod/2026-10/p2925134163.webp",
+      "tjpicslideurl": "http://liangcang-material.alicdn.com/prod/upload/b1963fd8f1b0497cb2fd672670f8a17c.webp.jpg",
+      "tjurl": "?ac=detail&ids=611666"
+    },
+    {
+      "id": 609178,
+      "tjid": 1,
+      "tjtype": "TVPLAY",
+      "tjinfo": "兰香如故",
+      "tjstarttime": "2026-10-23 09:45:06",
+      "tjendtime": "2026-09-11 20:52:04",
+      "tjwei": 6,
+      "tjpicurl": "http://pic3.yzzyimg.online/upload/vod/2026-09-11/202609111789128779.jpg",
+      "tjpicslideurl": "http://tv.puui.qpic.cn/tv/0/mz_tv_image_frontend_1f6d55-1_284676704_1789055297314764_pic_1920x800/0?imageMogr2/thumbnail/1800x/quality/75&amp;max_age=7776000",
+      "tjurl": "?ac=detail&ids=609178"
+    }
+  ]
+}

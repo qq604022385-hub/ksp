@@ -1,0 +1,8 @@
+{
+  "code": 200,
+  "url": "http://43.248.3.46:7788/m3u8/pan1.php?token=cad27f2a8186e9fe317696a8168bc358.m3u8",
+  "UserAgent": " Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+  "Client": 1,
+  "maxClient": 1,
+  "timeout": "8"
+}

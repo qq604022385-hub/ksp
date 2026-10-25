@@ -1,0 +1,42 @@
+[
+  {
+    "type_en": "tvplay",
+    "type_name": "电视剧",
+    "type_status": 1
+  },
+  {
+    "type_en": "movie",
+    "type_name": "电影",
+    "type_status": 1
+  },
+  {
+    "type_en": "tvshow",
+    "type_name": "综艺",
+    "type_status": 1
+  },
+  {
+    "type_en": "comic",
+    "type_name": "动漫",
+    "type_status": 1
+  },
+  {
+    "type_en": "oumeiju",
+    "type_name": "海外剧",
+    "type_status": 1
+  },
+  {
+    "type_en": "hanguoju",
+    "type_name": "4K",
+    "type_status": 1
+  },
+  {
+    "type_en": "movie_4k",
+    "type_name": "少儿",
+    "type_status": 1
+  },
+  {
+    "type_en": "movie_ZB",
+    "type_name": "短剧",
+    "type_status": 1
+  }
+]

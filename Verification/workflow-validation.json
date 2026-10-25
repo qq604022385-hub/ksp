@@ -1,0 +1,7 @@
+{
+  "yamlParsed": true,
+  "name": "Build iOS IPA",
+  "runner": "macos-15",
+  "steps": 10,
+  "githubRunExecuted": false
+}

@@ -169,6 +169,8 @@ struct SavedRow: View {
     @State private var resolving = false
     @State private var error: String?
     @State private var revision = 0
+    @State private var activePlayKey: String?
+    @State private var resolutionTask: Task<Void, Never>?
     @AppStorage("kanke.autoplay") private var autoplay = true
     @AppStorage("kanke.speed") private var speed = 1.0
     private var selected: VideoSource? { sources.indices.contains(source) ? sources[source] : nil }
@@ -178,7 +180,7 @@ struct SavedRow: View {
             VStack(alignment: .leading, spacing: 20) {
                 ZStack {
                     Color.black
-                    NativePlayer(player: playback.player)
+                    NativePlayer(controller: playback)
                     if resolving || playback.buffering { ProgressView("正在连接视频…").padding().background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12)) }
                 }.aspectRatio(16/9, contentMode: .fit)
                 VStack(alignment: .leading, spacing: 18) {
@@ -202,7 +204,7 @@ struct SavedRow: View {
                             Spacer()
                             Menu {
                                 ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { rate in
-                                    Button("\(rate, specifier: "%g")×") { speed = rate; playback.speed = Float(rate); if playback.player.rate != 0 { playback.player.rate = Float(rate) } }
+                                    Button("\(rate, specifier: "%g")×") { speed = rate; playback.speed = Float(rate) }
                                 }
                             } label: { Text("\(speed, specifier: "%g")×").font(.subheadline) }
                         }
@@ -245,13 +247,14 @@ struct SavedRow: View {
             }
         }
         .background(canvas).navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("完成") { dismiss() } } }
-        .task { await load() }
-        .task(id: playKey) { await resolve() }
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("完成") { resolutionTask?.cancel(); playback.close(); dismiss() } } }
+        .task { await load(); if !Task.isCancelled { startResolution() } }
+        .onChange(of: playKey) { _ in startResolution() }
         .onChange(of: scenePhase) { if $0 != .active { playback.saveProgress() } }
-        .onDisappear { playback.stop() }
+        .onDisappear { if !playback.isFullScreen { resolutionTask?.cancel(); playback.close() } }
     }
     @MainActor private func load() async {
+        guard !loaded else { return }
         loading = true; error = nil
         defer { loading = false }
         do {
@@ -266,7 +269,20 @@ struct SavedRow: View {
     }
     @MainActor private func resolve() async {
         guard loaded, let selected, selected.episodes.indices.contains(episode) else { return }
+        guard activePlayKey != playKey else { return }
+        activePlayKey = nil
         playback.stop(); error = nil; resolving = true
+        playback.showStatus("正在解析视频…")
+        playback.onBack = { resolutionTask?.cancel(); playback.close(); dismiss() }
+        playback.navigation(title: "\(detail?.summary.title ?? video.title) · \(selected.episodes[episode].title)",
+                            sources: sources, source: source, episode: episode,
+                            onSource: { index in
+                                source = index
+                                episode = min(episode, max(0, sources[index].episodes.count - 1))
+                                startResolution()
+                            }, onEpisode: { episode = $0; startResolution() }, onNext: {
+                                if let selected = self.selected, episode + 1 < selected.episodes.count { episode += 1; startResolution() }
+                            })
         let currentKey = playKey, sourceID = selected.id, episodeIndex = episode, item = selected.episodes[episode]
         defer { if playKey == currentKey { resolving = false } }
         do {
@@ -279,8 +295,24 @@ struct SavedRow: View {
                 library.record(detail?.summary ?? video, source: sourceID, episode: episodeIndex,
                     title: item.title, position: position, duration: duration)
             }
-            playback.onEnd = { if autoplay, let selected = self.selected, episode+1 < selected.episodes.count { episode += 1 } }
-        } catch { if !Task.isCancelled && playKey == currentKey { self.error = error.localizedDescription } }
+            activePlayKey = currentKey
+            playback.onEnd = {
+                if autoplay, let selected = self.selected, episode+1 < selected.episodes.count {
+                    episode += 1; startResolution()
+                }
+            }
+        } catch {
+            if !Task.isCancelled && playKey == currentKey {
+                self.error = error.localizedDescription
+                playback.showStatus("解析失败，请切换线路或返回重试")
+            }
+        }
+    }
+    @MainActor private func startResolution() {
+        resolutionTask?.cancel()
+        // Full-screen UIKit presentation can hide the SwiftUI detail page.
+        // Explicit tasks let its menus switch streams while that page is hidden.
+        resolutionTask = Task { await resolve() }
     }
 }
 

@@ -9,8 +9,8 @@ parser.add_argument('--output', default=str(ROOT/'build/Kanke-iOS-source.zip'))
 args = parser.parse_args()
 output = Path(args.output).resolve()
 output.parent.mkdir(parents=True, exist_ok=True)
-roots = ['Kanke', 'Kanke.xcodeproj', 'Packages', 'Scripts', 'Verification', '.github']
-paths = [ROOT/'README.md', ROOT/'.gitignore', ROOT/'.gitattributes']
+roots = ['Kanke', 'Kanke.xcodeproj', 'Packages', 'Scripts', 'Verification', '.github', 'Vendor/KSPlayer']
+paths = [ROOT/'README.md', ROOT/'.gitignore', ROOT/'.gitattributes', ROOT/'THIRD-PARTY-NOTICES.md']
 for directory in roots:
     paths.extend(p for p in (ROOT/directory).rglob('*') if p.is_file()
                  and not any(x in p.parts for x in ('__pycache__', '.build', '.swiftpm', 'xcuserdata')))

@@ -1,8 +1,10 @@
 # 看客 iOS 客户端
 
-原生 SwiftUI + AVKit 客户端，复用你提供的《看客手机 app300》内容协议。最低 iOS 16.0，适配 iPhone / iPad。没有广告 SDK，没有广告配置、激励视频或广告自动启动代码。
+**源码修正版 v2**：已将分类模型 `Category` 统一更名为 `VideoCategory`，修复 macOS XCTest 中的类型歧义；测试和界面使用明确的模块限定类型。请覆盖上传新源码并提交后再运行 Actions，不要只重跑旧提交的任务。详见 `Verification/category-build-fix.md`。
 
-已实现：分类片库、搜索、分页、影片详情、线路选择、选集、下一集、系统播放器、倍速、收藏、观看历史、断点续播、本机数据管理。原生播放器提供的全屏、AirPlay、画中画和实际媒体兼容性仍需 iPhone 验收。
+原生 SwiftUI + KSPlayer / FFmpeg 客户端，复用你提供的《看客手机 app300》内容协议。最低 iOS 16.0，适配 iPhone / iPad。没有广告 SDK，没有广告配置、激励视频或广告自动启动代码。
+
+已实现：分类片库、搜索、分页、影片详情、线路选择、选集、下一集、自定义播放器、倍速、收藏、观看历史、断点续播、本机数据管理。复用 KSPlayer 2.3.4 的控制栏、横屏全屏、进度拖动、亮度/音量手势、双击暂停、长按倍速及锁屏按钮，并在全屏内增加选集、线路和下一集。播放内核显式指定为 KSMEPlayer（FFmpeg），关闭系统内核回退。画中画入口暂不开放。操作体验和媒体兼容性仍需 iPhone 验收。
 
 ## 在 GitHub 构建 IPA
 
@@ -30,7 +32,7 @@
 
 ## 本地 Xcode
 
-在 Mac 上直接打开 `Kanke.xcodeproj`，选择 `Kanke` scheme。原生界面以 Xcode 16 或更高版本为目标编写，Swift 语言模式为 5。仅使用系统框架和仓库内的本地 Swift Package，无第三方播放器或远程 Swift 依赖。
+在 Mac 上先运行 `python3 Scripts/prepare_player.py`，再打开 `Kanke.xcodeproj`，选择 `Kanke` scheme。原生界面以 Xcode 16 或更高版本为目标编写，Swift 语言模式为 5。第三方 KSPlayer 源码位于 `Vendor/KSPlayer`；FFmpegKit 的 iPhone/模拟器原生依赖由脚本从固定上游提交下载（首次约 300 MB），不提交到仓库。Actions 已自动加入此步骤。许可证及修改说明见 `THIRD-PARTY-NOTICES.md`；该公开版本采用 GPL-3.0。
 
 ```sh
 swift test --package-path Packages/KankeCore
@@ -56,15 +58,15 @@ bash Scripts/package_ipa.sh build/Kanke.xcarchive/Products/Applications/Kanke.ap
 
 ## 已验证与尚未验证
 
-当前 Windows 环境已实测服务器发现、配置、分类、片单、搜索、详情、线路元数据解码，以及三条来源的播放解析；两条 HLS 返回有效播放列表，一条 MP4 请求成功。查看 `Verification/live-api-verification.json`。这些是接口/媒体请求验证，不是 AVPlayer 播放验收。
+当前 Windows 环境已实测服务器发现、配置、分类、片单、搜索、详情、线路元数据解码，以及三条来源的播放解析；两条 HLS 返回有效播放列表，一条 MP4 请求成功。查看 `Verification/live-api-verification.json`。这些是接口/媒体请求验证，不是 FFmpeg 播放验收。
 
 工程结构、资源、工作流和协议的主机检查记录见 `Verification/host-validation.txt`。原生 Swift 单元测试已写入，但本机没有可用的 Apple SDK 构建环境，**尚未执行 Xcode 编译、GitHub Actions 构建或 iPhone 安装验收**。工作流成功与实际产物验证以你运行后的日志为准，不能将源码检查当成已生成可安装 IPA。
 
-首次运行时请检查片库、搜索、选集、切线、播放/暂停、后台返回、倍速与续播。HLS / MP4 可播性、特殊编码、DRM、请求头转发、AirPlay 和画中画都需要实际 iPhone 测试。应用会显示解码/网络/播放错误，并提供重新加载和切线入口。
+首次运行时请检查片库、搜索、选集、切线、播放/暂停、后台返回、倍速与续播。HLS / MP4 可播性、特殊编码、DRM、请求头转发、横屏返回和手势都需要实际 iPhone 测试。应用会显示解码/网络/播放错误，并提供重新加载和切线入口。
 
 ## 目录
 
-- `Kanke/`：原生界面、AVPlayer 生命周期、本机收藏/历史。
+- `Kanke/`：原生界面、KSPlayer / FFmpeg 生命周期、本机收藏/历史。
 - `Packages/KankeCore/`：网络与协议、数据模型、Swift 测试及去敏测试样本。
 - `.github/workflows/build-ios.yml`：GitHub macOS 构建流程。
 - `Scripts/`：工程检查、IPA 打包与可选自有证书签名。

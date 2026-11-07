@@ -39,6 +39,16 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$APP_BUNDLE_ID" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]
+          # Scope this setting to Runner; a command-line override also affects Pods.
+          ruby -rxcodeproj <<'RUBY'
+          project = Xcodeproj::Project.open('ios/Runner.xcodeproj')
+          runner = project.targets.find { |target| target.name == 'Runner' }
+          abort 'Runner target not found' unless runner
+          runner.build_configurations.each do |configuration|
+            configuration.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = ENV.fetch('APP_BUNDLE_ID')
+          end
+          project.save
+          RUBY
           mkdir -p build/output
           xcodebuild -version | tee build/output/xcode-version.txt
           flutter --version | tee build/output/flutter-version.txt
@@ -46,7 +56,6 @@ jobs:
             -configuration Release -destination 'generic/platform=iOS' \
             -derivedDataPath build/ios-device \
             IPHONEOS_DEPLOYMENT_TARGET=15.0 \
-            PRODUCT_BUNDLE_IDENTIFIER="$APP_BUNDLE_ID" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee build/output/xcodebuild.log
       - name: Package and validate unsigned IPA
@@ -58,13 +67,11 @@ jobs:
           python3 tool/validate_ipa.py build/output/Cineo-Kanke-Storm-unsigned.ipa
           shasum -a 256 build/output/*.ipa > build/output/SHA256SUMS.txt
           printf '%s\n' 'Unsigned iOS app; sign with your own Apple signing method before installing.' > build/output/BUILD-INFO.txt
-      - uses: actions/upload-artifact@v4
+      - name: Upload IPA directly without an outer ZIP
+        uses: actions/upload-artifact@v7.0.2
         with:
-          name: Cineo-Kanke-Storm-iOS-${{ github.run_number }}
-          path: |
-            build/output/*.ipa
-            build/output/SHA256SUMS.txt
-            build/output/BUILD-INFO.txt
+          path: build/output/Cineo-Kanke-Storm-unsigned.ipa
+          archive: false
           if-no-files-found: error
           retention-days: 14
       - name: Save build diagnostics

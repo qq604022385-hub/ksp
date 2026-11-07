@@ -57,6 +57,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/trial/Payload build/output
           cp -R build/ios/iphoneos/Runner.app build/trial/Payload/
+          python3 tool/prepare_ipa.py build/trial/Payload/Runner.app
           (cd build/trial && zip -qry ../output/Kazumi-Kanke-Storm-unsigned.ipa Payload)
           python3 tool/validate_ipa.py build/output/Kazumi-Kanke-Storm-unsigned.ipa
           shasum -a 256 build/output/*.ipa > build/output/SHA256SUMS.txt

@@ -69,6 +69,3 @@ flutter:
       android:
         package: com.alexmercerind.media_kit
         pluginClass: MediaKitPlugin
-  assets:
-    - path: assets/web/
-      platforms: [web]

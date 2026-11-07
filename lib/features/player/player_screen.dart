@@ -1,0 +1,2545 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
+
+import '../../core/models/media.dart';
+import '../../core/models/source_search_progress.dart';
+import '../../core/platform/picture_in_picture.dart';
+import '../../core/theme/cineo_theme.dart';
+import '../../data/remote/service_sources.dart';
+import '../../shared/widgets/media_image.dart';
+import '../settings/m3u8_filter_settings.dart';
+
+const List<double> supportedPlaybackSpeeds = <double>[
+  0.5,
+  0.75,
+  1,
+  1.25,
+  1.5,
+  2,
+];
+
+const int _maxPlaybackInitializationAttempts = 3;
+const Duration _playbackRetryDelay = Duration(milliseconds: 500);
+const Duration _playbackInitializationTimeout = Duration(seconds: 12);
+const Duration _controlsHideDelay = Duration(seconds: 3);
+
+/// Formats the elapsed or total playback duration for the player controls.
+String formatPlaybackDuration(Duration duration) {
+  final totalSeconds = duration.inSeconds.clamp(0, 359999);
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
+/// Applies a relative seek while keeping the target inside the video range.
+Duration seekPositionBy({
+  required Duration position,
+  required Duration offset,
+  required Duration duration,
+}) {
+  final target = position + offset;
+  if (target < Duration.zero) return Duration.zero;
+  if (duration > Duration.zero && target > duration) return duration;
+  return target;
+}
+
+String episodeDisplayLabel(PlaybackOption option) {
+  final match = RegExp(r'第\s*(\d+)\s*集').firstMatch(option.label);
+  final episodeNumber = int.tryParse(match?.group(1) ?? '');
+  if (episodeNumber != null) return '第$episodeNumber集';
+
+  final label = option.label.trim();
+  return label.isEmpty ? '未命名剧集' : label;
+}
+
+int playbackEpisodeIndex(List<PlaybackOption> episodes, String optionId) {
+  final index = episodes.indexWhere((episode) => episode.id == optionId);
+  return index < 0 ? 0 : index;
+}
+
+String playbackUrlForOption(
+  PlaybackOption option,
+  M3u8FilterConfig? filterConfig,
+) {
+  final isM3u8 = option.isHls || option.url.toLowerCase().contains('.m3u8');
+  if (!isM3u8 || filterConfig == null) return option.url;
+  return buildM3u8FilterUrl(filterConfig.template, option.url);
+}
+
+List<String> playbackUrlCandidatesForOption(
+  PlaybackOption option,
+  M3u8FilterConfig? filterConfig,
+) {
+  final filteredUrl = playbackUrlForOption(option, filterConfig);
+  if (filteredUrl == option.url) return <String>[option.url];
+  return <String>[filteredUrl, option.url];
+}
+
+/// Returns the local file candidate when it points at a usable regular file.
+///
+/// The callback is intentionally kept outside the player and returns a path
+/// rather than a [File], so callers can resolve completed download tasks
+/// without coupling the player to the download service.
+Future<File?> localPlaybackFileForOption(
+  PlaybackOption option,
+  Future<String?> Function(PlaybackOption option)? localSourceForOption,
+) async {
+  if (localSourceForOption == null) return null;
+  final path = (await localSourceForOption(option))?.trim();
+  if (path == null || path.isEmpty) return null;
+  final file = File(path);
+  return await file.exists() ? file : null;
+}
+
+/// Resolves a completed local source that can be either a file path or a
+/// loopback HTTP HLS URL.
+Future<String?> localPlaybackSourceForOption(
+  PlaybackOption option,
+  Future<String?> Function(PlaybackOption option)? localSourceForOption,
+) async {
+  if (localSourceForOption == null) return null;
+  final source = (await localSourceForOption(option))?.trim();
+  if (source == null || source.isEmpty) return null;
+  final uri = Uri.tryParse(source);
+  if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+    return source;
+  }
+  final file = File(source);
+  return await file.exists() ? file.path : null;
+}
+
+VideoFormat? playbackFormatHintForOption(PlaybackOption option) {
+  final isM3u8 = option.isHls || option.url.toLowerCase().contains('.m3u8');
+  return isM3u8 ? VideoFormat.hls : null;
+}
+
+enum _PlayerOrientation { portrait, landscape }
+
+class PlayerScreen extends StatefulWidget {
+  const PlayerScreen({
+    super.key,
+    required this.media,
+    required this.option,
+    required this.initialPosition,
+    required this.onProgressChanged,
+    this.m3u8FilterSettings,
+    this.episodeId,
+    this.episodes = const <PlaybackOption>[],
+    this.initialPositions = const <String, Duration>{},
+    this.initialPositionForEpisode,
+    this.onPictureInPicture,
+    this.onAppPictureInPictureChanged,
+    this.pictureInPictureAvailable = false,
+    this.onSearchOtherSources,
+    this.onSearchOtherSourcesProgressively,
+    this.onLoadAlternative,
+    this.localSourceForOption,
+    this.onLocalPlaybackError,
+    this.localOnly = false,
+  });
+
+  final MediaItem media;
+  final PlaybackOption option;
+  final Duration initialPosition;
+  final Future<void> Function(MediaItem media, WatchProgress progress)
+      onProgressChanged;
+  final M3u8FilterSettings? m3u8FilterSettings;
+  final String? episodeId;
+
+  /// Options from the currently selected playback line, in episode order.
+  /// The old single-option call remains valid when this is omitted.
+  final List<PlaybackOption> episodes;
+
+  /// Progress keyed by PlaybackOption.id, supplied by the caller when it has
+  /// already loaded local watch history.
+  final Map<String, Duration> initialPositions;
+
+  /// Optional lazy lookup for callers that do not want to build a map.
+  final Duration Function(String episodeId)? initialPositionForEpisode;
+
+  /// Platform-specific PiP is injected by the caller. video_player itself does
+  /// not expose a portable Flutter PiP API.
+  final Future<bool> Function(PictureInPictureRequest request)?
+      onPictureInPicture;
+  final ValueChanged<bool>? onAppPictureInPictureChanged;
+  final bool pictureInPictureAvailable;
+  final Future<List<MediaItem>> Function(MediaItem media)? onSearchOtherSources;
+  final Stream<SourceSearchProgress> Function(MediaItem media)?
+      onSearchOtherSourcesProgressively;
+  final Future<MediaItem?> Function(MediaItem media)? onLoadAlternative;
+
+  /// Resolves a completed local download to its final media file path.
+  ///
+  /// A null/empty/nonexistent path is treated as a cache miss. The player
+  /// never deletes a path returned by this callback.
+  final Future<String?> Function(PlaybackOption option)? localSourceForOption;
+
+  /// Receives local-cache playback failures. Errors are advisory and must not
+  /// remove the completed cache file.
+  final void Function(PlaybackOption option, String path, Object error)?
+      onLocalPlaybackError;
+
+  /// When true, the player must use the resolved local source and never try a
+  /// remote playback URL. This is used by the cache manager's play action.
+  final bool localOnly;
+
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen>
+    with WidgetsBindingObserver {
+  static const _pictureInPicture = PictureInPictureService();
+
+  VideoPlayerController? _controller;
+  Map<String, String> _activeHttpHeaders = const {};
+  PlaybackOption? _activeOption;
+  late MediaItem _media = widget.media;
+  Timer? _saveTimer;
+  Timer? _controlsHideTimer;
+  String? _error;
+  bool _controlsVisible = true;
+  double _playbackSpeed = 1;
+  bool? _lastIsPlaying;
+  int _loadGeneration = 0;
+  _PlayerOrientation _orientation = _PlayerOrientation.portrait;
+  double _brightness = 1.0;
+  double _volume = 1.0;
+  bool _searchingOtherSources = false;
+  bool _isInPictureInPicture = false;
+  bool _pictureInPictureRequestInFlight = false;
+  bool _isInAppPictureInPicture = false;
+  OverlayEntry? _appPictureInPictureOverlay;
+  bool _appPictureInPictureControlsVisible = true;
+  double _appPictureInPictureScale = 1;
+  Offset? _appPictureInPictureOffset;
+  Offset? _appPictureInPictureStartOffset;
+  Offset? _appPictureInPictureStartFocalPoint;
+  double _appPictureInPictureStartScale = 1;
+  bool _isClosing = false;
+  Offset? _gestureIndicatorPosition;
+  String? _gestureIndicatorType; // 'brightness', 'volume', or null
+  bool _autoRotateEnabled = true;
+
+  List<PlaybackOption> get _episodes {
+    final activeQuality = _activeOption?.quality ?? widget.option.quality;
+    final options = _media.playbackOptions
+        .where((option) => option.quality == activeQuality)
+        .toList(growable: false);
+    final resolved = options.isEmpty
+        ? <PlaybackOption>[..._media.playbackOptions]
+        : <PlaybackOption>[...options];
+    if (resolved.isEmpty) resolved.add(widget.option);
+    final seen = <String>{};
+    return resolved
+        .where((option) => seen.add(option.id))
+        .toList(growable: false);
+  }
+
+  int get _currentEpisodeIndex => playbackEpisodeIndex(
+        _episodes,
+        _activeOption?.id ?? widget.option.id,
+      );
+
+  VideoPlayerController? get _initializedController {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return null;
+    return controller;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_pictureInPicture.setEventHandlers(
+      onAction: _handlePictureInPictureAction,
+      onAutoEnter: _handleAutomaticPictureInPictureRequest,
+      onModeChanged: _handlePictureInPictureModeChanged,
+    ));
+    _setupAutoRotate();
+    _loadOption(widget.option, initial: true);
+  }
+
+  void _setupAutoRotate() {
+    // Enable auto-rotation and listen to device orientation changes
+    unawaited(SystemChrome.setPreferredOrientations(
+      const <DeviceOrientation>[
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ],
+    ));
+
+    // Schedule first orientation check
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOrientationChange();
+    });
+  }
+
+  void _checkOrientationChange() {
+    if (!mounted || !_autoRotateEnabled) return;
+
+    final currentOrientation = MediaQuery.of(context).orientation;
+    final isCurrentlyLandscape = _orientation == _PlayerOrientation.landscape;
+    final shouldBeLandscape = currentOrientation == Orientation.landscape;
+
+    if (isCurrentlyLandscape != shouldBeLandscape) {
+      setState(() {
+        _orientation = shouldBeLandscape
+            ? _PlayerOrientation.landscape
+            : _PlayerOrientation.portrait;
+      });
+    }
+
+    // Schedule next check
+    Future.delayed(const Duration(milliseconds: 500), _checkOrientationChange);
+  }
+
+  Duration _positionFor(PlaybackOption option, {required bool initial}) {
+    final mapped = widget.initialPositions[option.id];
+    if (mapped != null) return mapped;
+
+    final callbackPosition = widget.initialPositionForEpisode?.call(option.id);
+    if (callbackPosition != null) return callbackPosition;
+
+    if (initial &&
+        (widget.episodeId == null || widget.episodeId == option.id)) {
+      return widget.initialPosition;
+    }
+    return Duration.zero;
+  }
+
+  Future<void> _loadOption(
+    PlaybackOption option, {
+    bool initial = false,
+    bool savePrevious = true,
+    Duration? positionOverride,
+  }) async {
+    final generation = ++_loadGeneration;
+    _activeHttpHeaders = const {};
+    final previousController = _controller;
+    if (previousController != null) {
+      if (savePrevious) await _save();
+      _controller = null;
+      previousController.removeListener(_onControllerChanged);
+      await previousController.dispose();
+    }
+    if (!mounted || generation != _loadGeneration) return;
+
+    _activeOption = option;
+    _lastIsPlaying = null;
+    _error = null;
+
+    final localSource = await _resolveLocalPlaybackSource(option, generation);
+    if (localSource != null) {
+      assert(() {
+        debugPrint('[Cineo][Player] local_source_selected source=$localSource');
+        return true;
+      }());
+      final localUri = Uri.tryParse(localSource);
+      final loadedLocally = localUri != null &&
+              (localUri.scheme == 'http' || localUri.scheme == 'https')
+          ? await _initializeLocalNetworkController(
+              option,
+              localUri,
+              initial: initial,
+              generation: generation,
+            )
+          : await _initializeLocalController(
+              option,
+              File(localSource),
+              initial: initial,
+              generation: generation,
+            );
+      if (loadedLocally) return;
+      if (widget.localOnly) {
+        if (mounted && generation == _loadGeneration) {
+          setState(() => _error = '本地缓存无法播放');
+        }
+        return;
+      }
+    } else {
+      assert(() {
+        debugPrint(widget.localOnly
+            ? '[Cineo][Player] local_source_miss; local-only playback stopped'
+            : '[Cineo][Player] local_source_miss; using remote candidates');
+        return true;
+      }());
+      if (widget.localOnly) {
+        if (mounted && generation == _loadGeneration) {
+          setState(() => _error = '本地缓存不存在');
+        }
+        return;
+      }
+    }
+
+    final PlaybackOption resolvedOption;
+    try {
+      resolvedOption = await ServiceSources.instance.resolve(option);
+    } catch (error) {
+      if (mounted && generation == _loadGeneration) {
+        setState(() => _error = error is FormatException
+            ? error.message.toString()
+            : '播放解析失败，请重试或切换线路');
+      }
+      return;
+    }
+    if (!mounted || generation != _loadGeneration) return;
+    final playbackUrls = playbackUrlCandidatesForOption(
+      resolvedOption,
+      widget.m3u8FilterSettings?.activeConfig,
+    );
+    _activeHttpHeaders = resolvedOption.headers;
+    for (var urlIndex = 0; urlIndex < playbackUrls.length; urlIndex++) {
+      final playbackUrl = playbackUrls[urlIndex];
+      final attempts = urlIndex == 0 && playbackUrls.length > 1
+          ? _maxPlaybackInitializationAttempts
+          : 1;
+
+      for (var attempt = 1; attempt <= attempts; attempt++) {
+        if (!mounted || generation != _loadGeneration) return;
+
+        final controller = _networkControllerFor(playbackUrl, resolvedOption);
+        _controller = controller;
+        if (mounted) setState(() {});
+        controller.addListener(_onControllerChanged);
+
+        try {
+          await controller.initialize().timeout(_playbackInitializationTimeout);
+          if (!mounted || generation != _loadGeneration) {
+            controller.removeListener(_onControllerChanged);
+            await controller.dispose();
+            return;
+          }
+
+          await _finishControllerInitialization(
+            controller,
+            option,
+            initial: initial,
+            positionOverride: positionOverride,
+          );
+          return;
+        } catch (error) {
+          controller.removeListener(_onControllerChanged);
+          if (identical(_controller, controller)) _controller = null;
+          await controller.dispose();
+
+          assert(() {
+            debugPrint(
+              '[Cineo][Player] initialize_failed urlIndex=${urlIndex + 1}/'
+              '${playbackUrls.length} attempt=$attempt/$attempts error=$error',
+            );
+            return true;
+          }());
+
+          if (!mounted || generation != _loadGeneration) return;
+          if (attempt < attempts) {
+            await Future<void>.delayed(_playbackRetryDelay);
+          }
+        }
+      }
+
+      if (urlIndex < playbackUrls.length - 1) {
+        assert(() {
+          debugPrint(
+            '[Cineo][Player] fallback_to_original_url '
+            'after_filtered_url_failed',
+          );
+          return true;
+        }());
+      }
+    }
+
+    if (mounted && generation == _loadGeneration) {
+      setState(() => _error = '此播放地址暂时无法播放');
+    }
+  }
+
+  Future<String?> _resolveLocalPlaybackSource(
+    PlaybackOption option,
+    int generation,
+  ) async {
+    try {
+      final source = await localPlaybackSourceForOption(
+        option,
+        widget.localSourceForOption,
+      );
+      if (!mounted || generation != _loadGeneration) return null;
+      return source;
+    } catch (error) {
+      assert(() {
+        debugPrint('[Cineo][Player] local_source_lookup_failed error=$error');
+        return true;
+      }());
+      return null;
+    }
+  }
+
+  VideoPlayerController _networkControllerFor(
+    String playbackUrl,
+    PlaybackOption option,
+  ) {
+    return VideoPlayerController.networkUrl(
+      Uri.parse(playbackUrl),
+      httpHeaders: option.headers,
+      formatHint: playbackFormatHintForOption(option),
+      videoPlayerOptions: VideoPlayerOptions(
+        allowBackgroundPlayback: true,
+      ),
+    );
+  }
+
+  Future<bool> _initializeLocalController(
+    PlaybackOption option,
+    File file, {
+    required bool initial,
+    required int generation,
+    Duration? positionOverride,
+  }) async {
+    final controller = VideoPlayerController.file(
+      file,
+      videoPlayerOptions: VideoPlayerOptions(
+        allowBackgroundPlayback: true,
+      ),
+    );
+    _controller = controller;
+    if (mounted) setState(() {});
+    controller.addListener(_onControllerChanged);
+
+    try {
+      await controller.initialize().timeout(_playbackInitializationTimeout);
+      if (!mounted || generation != _loadGeneration) {
+        controller.removeListener(_onControllerChanged);
+        await controller.dispose();
+        return false;
+      }
+      await _finishControllerInitialization(
+        controller,
+        option,
+        initial: initial,
+        positionOverride: positionOverride,
+      );
+      return true;
+    } catch (error) {
+      controller.removeListener(_onControllerChanged);
+      if (identical(_controller, controller)) _controller = null;
+      await controller.dispose();
+      try {
+        widget.onLocalPlaybackError?.call(option, file.path, error);
+      } catch (_) {
+        // An observer must not prevent remote playback fallback.
+      }
+      assert(() {
+        debugPrint(
+          '[Cineo][Player] local_initialize_failed path=${file.path} '
+          'error=$error',
+        );
+        return true;
+      }());
+      if (mounted && generation == _loadGeneration) setState(() {});
+      return false;
+    }
+  }
+
+  Future<bool> _initializeLocalNetworkController(
+    PlaybackOption option,
+    Uri uri, {
+    required bool initial,
+    required int generation,
+    Duration? positionOverride,
+  }) async {
+    final controller = VideoPlayerController.networkUrl(
+      uri,
+      formatHint: VideoFormat.hls,
+      videoPlayerOptions: VideoPlayerOptions(
+        allowBackgroundPlayback: true,
+      ),
+    );
+    _controller = controller;
+    if (mounted) setState(() {});
+    controller.addListener(_onControllerChanged);
+
+    try {
+      await controller.initialize().timeout(_playbackInitializationTimeout);
+      if (!mounted || generation != _loadGeneration) {
+        controller.removeListener(_onControllerChanged);
+        await controller.dispose();
+        return false;
+      }
+      await _finishControllerInitialization(
+        controller,
+        option,
+        initial: initial,
+        positionOverride: positionOverride,
+      );
+      return true;
+    } catch (error) {
+      controller.removeListener(_onControllerChanged);
+      if (identical(_controller, controller)) _controller = null;
+      await controller.dispose();
+      assert(() {
+        debugPrint(
+          '[Cineo][Player] local_hls_initialize_failed url=$uri '
+          'error=$error; falling back to remote',
+        );
+        return true;
+      }());
+      if (mounted && generation == _loadGeneration) setState(() {});
+      return false;
+    }
+  }
+
+  Future<void> _finishControllerInitialization(
+    VideoPlayerController controller,
+    PlaybackOption option, {
+    required bool initial,
+    Duration? positionOverride,
+  }) async {
+    // Resource switching must preserve the live position even when the new
+    // source uses a different PlaybackOption.id and the queued history write
+    // has not completed yet.
+    final requestedPosition =
+        positionOverride ?? _positionFor(option, initial: initial);
+    if (requestedPosition > Duration.zero) {
+      final maxPosition = controller.value.duration;
+      await controller.seekTo(
+        requestedPosition > maxPosition ? maxPosition : requestedPosition,
+      );
+    }
+    await controller.setPlaybackSpeed(_playbackSpeed);
+    await controller.play();
+    _saveTimer ??= Timer.periodic(const Duration(seconds: 10), (_) {
+      unawaited(_save());
+    });
+    _scheduleControlsHide();
+    _updatePictureInPictureControls();
+    if (mounted) setState(() {});
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final isPlaying = _controller?.value.isPlaying;
+    if (_lastIsPlaying != isPlaying) {
+      _lastIsPlaying = isPlaying;
+      if (isPlaying == true) {
+        _scheduleControlsHide();
+      } else {
+        _showControls();
+      }
+      _updatePictureInPictureControls();
+    }
+    // The listener also fires as the position advances, so rebuild the time
+    // labels together with the progress indicator.
+    setState(() {});
+    _appPictureInPictureOverlay?.markNeedsBuild();
+  }
+
+  PictureInPictureRequest? _pictureInPictureRequest() {
+    final controller = _initializedController;
+    final option = _activeOption;
+    if (controller == null || option == null) return null;
+    final aspectRatio = controller.value.aspectRatio;
+    return PictureInPictureRequest(
+      url: controller.dataSource,
+      headers: _activeHttpHeaders,
+      title: _media.title,
+      position: controller.value.position,
+      aspectRatio: aspectRatio > 0 ? aspectRatio : 16 / 9,
+      isPlaying: controller.value.isPlaying,
+    );
+  }
+
+  void _updatePictureInPictureControls() {
+    final request = _pictureInPictureRequest();
+    if (request != null) unawaited(_pictureInPicture.update(request));
+  }
+
+  Future<void> _handlePictureInPictureAction(String action) async {
+    switch (action) {
+      case 'toggle':
+        await _togglePlayPause();
+    }
+  }
+
+  Future<void> _handleAutomaticPictureInPictureRequest() async {
+    await _enterAutomaticPictureInPicture();
+  }
+
+  Future<void> _enterAutomaticPictureInPicture() async {
+    final controller = _initializedController;
+    if (controller?.value.isPlaying != true ||
+        !mounted ||
+        _isInPictureInPicture ||
+        _pictureInPictureRequestInFlight) {
+      return;
+    }
+
+    if (_isInAppPictureInPicture) {
+      setState(() {
+        _isInAppPictureInPicture = false;
+        _appPictureInPictureControlsVisible = true;
+      });
+    }
+    await _openPictureInPicture();
+  }
+
+  Future<void> _handlePictureInPictureModeChanged(
+    bool isInPictureInPicture,
+    Duration? position,
+  ) async {
+    if (!mounted) return;
+    final wasInPictureInPicture = _isInPictureInPicture;
+    setState(() {
+      _isInPictureInPicture = isInPictureInPicture;
+      if (isInPictureInPicture) _isInAppPictureInPicture = false;
+    });
+    if (!isInPictureInPicture && wasInPictureInPicture) {
+      final controller = _initializedController;
+      if (controller == null) return;
+      if (position != null && position > Duration.zero) {
+        await controller.seekTo(position);
+      }
+      if (mounted) {
+        await controller.play();
+        _showControls();
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (state == AppLifecycleState.resumed) {
+      if (_isInPictureInPicture) {
+        unawaited(_pictureInPicture.stop());
+      }
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_enterAutomaticPictureInPicture());
+    }
+  }
+
+  Future<void> _save() async {
+    final controller = _controller;
+    final option = _activeOption;
+    if (controller == null ||
+        option == null ||
+        !controller.value.isInitialized) {
+      return;
+    }
+    await widget.onProgressChanged(
+        _media,
+        WatchProgress(
+          mediaId: _media.id,
+          // A newly selected option must write under its own id; otherwise a
+          // caller's initial episodeId would make every switched episode share
+          // one history record.
+          episodeId: option.id,
+          episodeLabel: episodeDisplayLabel(option),
+          episodeNumber: _currentEpisodeIndex + 1,
+          episodeCount: _episodes.length,
+          position: controller.value.position,
+          duration: controller.value.duration,
+          updatedAt: DateTime.now(),
+        ));
+  }
+
+  void _toggleControls() {
+    if (_controlsVisible) {
+      _hideControls();
+    } else {
+      _showControls();
+    }
+  }
+
+  void _showControls() {
+    _controlsHideTimer?.cancel();
+    if (!_controlsVisible && mounted) {
+      setState(() => _controlsVisible = true);
+    }
+    if (_controller?.value.isPlaying == true) _scheduleControlsHide();
+  }
+
+  void _hideControls() {
+    _controlsHideTimer?.cancel();
+    if (_controlsVisible && mounted) {
+      setState(() => _controlsVisible = false);
+    }
+  }
+
+  void _scheduleControlsHide() {
+    _controlsHideTimer?.cancel();
+    if (!_controlsVisible || _controller?.value.isPlaying != true) return;
+    _controlsHideTimer = Timer(_controlsHideDelay, _hideControls);
+  }
+
+  void _handleVerticalDrag(DragUpdateDetails details) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final dragDistance = details.delta.dy;
+
+    // Right side: adjust volume
+    if (details.globalPosition.dx > screenSize.width / 2) {
+      _adjustVolume(-dragDistance / 100, details.globalPosition);
+    } else {
+      // Left side: adjust brightness
+      _adjustBrightness(-dragDistance / 100, details.globalPosition);
+    }
+  }
+
+  void _handleHorizontalDrag(DragUpdateDetails details) {
+    final dragDistance = details.delta.dx;
+    // Right swipe: forward, Left swipe: rewind
+    final seekOffset = Duration(seconds: (dragDistance / 10).round());
+    unawaited(_seekBy(seekOffset));
+  }
+
+  Future<void> _adjustBrightness(double delta, Offset position) async {
+    final newBrightness = (_brightness + delta).clamp(0.1, 1.0);
+    if (mounted) {
+      setState(() {
+        _brightness = newBrightness;
+        _gestureIndicatorPosition = position;
+        _gestureIndicatorType = 'brightness';
+      });
+    }
+    _scheduleClearGestureIndicator();
+  }
+
+  Future<void> _adjustVolume(double delta, Offset position) async {
+    final newVolume = (_volume + delta).clamp(0.0, 1.0);
+    if (mounted) {
+      setState(() {
+        _volume = newVolume;
+        _gestureIndicatorPosition = position;
+        _gestureIndicatorType = 'volume';
+      });
+    }
+
+    final controller = _initializedController;
+    if (controller != null) {
+      await controller.setVolume(newVolume);
+    }
+    _scheduleClearGestureIndicator();
+  }
+
+  void _scheduleClearGestureIndicator() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _gestureIndicatorType = null;
+          _gestureIndicatorPosition = null;
+        });
+      }
+    });
+  }
+
+  Future<void> _togglePlayPause() async {
+    final controller = _initializedController;
+    if (controller == null) return;
+    if (controller.value.isPlaying) {
+      await controller.pause();
+      _showControls();
+    } else {
+      await controller.play();
+      _showControls();
+    }
+  }
+
+  Future<void> _seekBy(Duration offset) async {
+    final controller = _initializedController;
+    if (controller == null) return;
+    final value = controller.value;
+    await controller.seekTo(
+      seekPositionBy(
+        position: value.position,
+        offset: offset,
+        duration: value.duration,
+      ),
+    );
+    _showControls();
+  }
+
+  Future<void> _setPlaybackSpeed(double speed) async {
+    _playbackSpeed = speed;
+    final controller = _initializedController;
+    if (controller != null) await controller.setPlaybackSpeed(speed);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _selectRelativeEpisode(int offset) async {
+    final index = _currentEpisodeIndex + offset;
+    if (index < 0 || index >= _episodes.length) return;
+    await _selectEpisode(_episodes[index]);
+  }
+
+  Future<void> _selectEpisode(PlaybackOption option) async {
+    if (option.id == _activeOption?.id) return;
+    _showControls();
+    await _loadOption(option);
+    _updatePictureInPictureControls();
+  }
+
+  Future<void> _openEpisodePanel() async {
+    final activeOptionId = _activeOption?.id ?? widget.option.id;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _EpisodeBottomSheet(
+        episodes: _episodes,
+        activeOptionId: activeOptionId,
+        onSelected: (option) {
+          Navigator.of(sheetContext).pop();
+          unawaited(_selectEpisode(option));
+        },
+      ),
+    );
+  }
+
+  Future<void> _openSourcePanel() async {
+    final finder = widget.onSearchOtherSources;
+    final progressiveFinder = widget.onSearchOtherSourcesProgressively;
+    final loader = widget.onLoadAlternative;
+    if ((finder == null && progressiveFinder == null) ||
+        loader == null ||
+        _searchingOtherSources) return;
+    setState(() => _searchingOtherSources = true);
+    try {
+      final selected = await showModalBottomSheet<MediaItem>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        backgroundColor: CineoColors.surface,
+        builder: (context) => _PlayerSourceSheet(
+          currentMedia: _media,
+          onSearch: finder,
+          onSearchProgressively: progressiveFinder,
+          activeSourceId: _media.sourceId,
+        ),
+      );
+      if (selected == null ||
+          selected.sourceId == _media.sourceId ||
+          !mounted) {
+        return;
+      }
+      await _switchSource(selected, loader);
+    } catch (_) {
+      _showMessage('其他站点暂时无法完成搜索');
+    } finally {
+      if (mounted) setState(() => _searchingOtherSources = false);
+    }
+  }
+
+  Future<void> _switchSource(
+    MediaItem alternative,
+    Future<MediaItem?> Function(MediaItem media) loader,
+  ) async {
+    final currentPosition =
+        _initializedController?.value.position ?? Duration.zero;
+    await _save();
+    final loaded = await loader(alternative);
+    if (!mounted || loaded == null) {
+      _showMessage('切换资源站失败，请稍后重试');
+      return;
+    }
+    final option = _matchingOption(loaded, _activeOption) ??
+        loaded.playbackOptions.firstOrNull;
+    if (option == null) {
+      _showMessage('该资源站暂无可播放剧集');
+      return;
+    }
+    setState(() => _media = loaded);
+    await _loadOption(
+      option,
+      savePrevious: false,
+      positionOverride: currentPosition,
+    );
+    if (mounted) _showMessage('已切换到${loaded.sourceName ?? '其他资源站'}');
+  }
+
+  PlaybackOption? _matchingOption(
+    MediaItem media,
+    PlaybackOption? current,
+  ) {
+    if (current == null) return null;
+    final currentNumber = _episodeNumber(current);
+    if (currentNumber == null) return null;
+    for (final option in media.playbackOptions) {
+      if (_episodeNumber(option) == currentNumber) return option;
+    }
+    return null;
+  }
+
+  int? _episodeNumber(PlaybackOption option) {
+    final match = RegExp(r'第\s*0*(\d+)\s*集').firstMatch(option.label);
+    return int.tryParse(match?.group(1) ?? '');
+  }
+
+  Future<void> _openSystemPlayer() async {
+    final request = _pictureInPictureRequest();
+    if (request == null) return;
+
+    await _pauseForExternalPlayback();
+    final opened = await _pictureInPicture.openSystemPlayer(request);
+    if (!opened && mounted) _showMessage('无法打开系统播放器');
+  }
+
+  Future<void> _pauseForExternalPlayback() async {
+    final controller = _initializedController;
+    if (controller?.value.isPlaying == true) {
+      await controller!.pause();
+    }
+  }
+
+  Future<void> _openPictureInPicture() async {
+    if (_pictureInPictureRequestInFlight || _isInPictureInPicture) return;
+    final option = _activeOption;
+    final enter = widget.onPictureInPicture;
+    final controller = _initializedController;
+    if (option == null || enter == null || controller == null) return;
+
+    _pictureInPictureRequestInFlight = true;
+    _showControls();
+    final request = _pictureInPictureRequest();
+    if (request == null) {
+      _pictureInPictureRequestInFlight = false;
+      return;
+    }
+
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    if (!isAndroid) await _pauseForExternalPlayback();
+    if (isAndroid && mounted) {
+      // Render the PiP-safe surface before Android shrinks the activity. Some
+      // devices apply PiP before their mode-change callback reaches Flutter.
+      setState(() => _isInPictureInPicture = true);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+    }
+
+    try {
+      final opened = await enter(request);
+      if (!opened) {
+        if (isAndroid && mounted) {
+          setState(() => _isInPictureInPicture = false);
+        }
+        // iOS pauses the Flutter player before handing playback to AVPlayer.
+        // Resume it when the native handoff is rejected or times out.
+        if (!isAndroid && mounted) {
+          await controller.play();
+        }
+        if (mounted) _showMessage('无法打开画中画');
+      }
+    } finally {
+      _pictureInPictureRequestInFlight = false;
+    }
+  }
+
+  Future<void> _openAppPictureInPicture() async {
+    final controller = _initializedController;
+    if (controller == null) return;
+    // The player route stays alive while the compact window exposes the page
+    // beneath it. Restore portrait before showing that page so it is not left
+    // with the full-player landscape constraints.
+    _autoRotateEnabled = false;
+    await SystemChrome.setPreferredOrientations(
+      const <DeviceOrientation>[DeviceOrientation.portraitUp],
+    );
+    if (!mounted) return;
+    final size = MediaQuery.sizeOf(context);
+    final windowSize = _appPictureInPictureSize(size, controller.value);
+    final padding = MediaQuery.paddingOf(context);
+    _appPictureInPictureScale = 1;
+    _appPictureInPictureOffset = Offset(
+      math.max(12, size.width - windowSize.width - 16),
+      math.max(
+        padding.top + 12,
+        size.height - padding.bottom - windowSize.height - 104,
+      ),
+    );
+    _appPictureInPictureControlsVisible = true;
+    setState(() {
+      _orientation = _PlayerOrientation.portrait;
+      _isInAppPictureInPicture = true;
+    });
+    widget.onAppPictureInPictureChanged?.call(true);
+    _showAppPictureInPictureOverlay();
+    _showControls();
+  }
+
+  void _showAppPictureInPictureOverlay() {
+    _removeAppPictureInPictureOverlay();
+    final overlay = Navigator.of(context, rootNavigator: true).overlay;
+    if (overlay == null) return;
+    _appPictureInPictureOverlay = OverlayEntry(
+      builder: (_) => _AppPictureInPictureSurface(
+        controller: _controller!,
+        title: _media.title,
+        speed: _playbackSpeed,
+        controlsVisible: _appPictureInPictureControlsVisible,
+        scale: _appPictureInPictureScale,
+        offset: _appPictureInPictureOffset,
+        onScaleStart: _onAppPictureInPictureScaleStart,
+        onScaleUpdate: _onAppPictureInPictureScaleUpdate,
+        onDoubleTap: _onAppPictureInPictureDoubleTap,
+        onToggleControls: _toggleAppPictureInPictureControls,
+        onClose: _closeAppPictureInPicture,
+        onReturnToPlayer: _returnToPlayerFromAppPictureInPicture,
+        onPlayPause: _togglePlayPause,
+        onSpeedChanged: _setPlaybackSpeed,
+        onRewind: () => unawaited(_seekBy(const Duration(seconds: -10))),
+        onForward: () => unawaited(_seekBy(const Duration(seconds: 10))),
+      ),
+    );
+    overlay.insert(_appPictureInPictureOverlay!);
+  }
+
+  void _removeAppPictureInPictureOverlay() {
+    _appPictureInPictureOverlay?.remove();
+    _appPictureInPictureOverlay = null;
+  }
+
+  Future<void> _closePlayer() async {
+    if (_isClosing) return;
+    _isClosing = true;
+    widget.onAppPictureInPictureChanged?.call(false);
+    _saveTimer?.cancel();
+    try {
+      await _save();
+    } finally {
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _closeAppPictureInPicture() async {
+    _removeAppPictureInPictureOverlay();
+    await _closePlayer();
+  }
+
+  void _returnToPlayerFromAppPictureInPicture() {
+    _removeAppPictureInPictureOverlay();
+    widget.onAppPictureInPictureChanged?.call(false);
+    setState(() {
+      _isInAppPictureInPicture = false;
+      _appPictureInPictureControlsVisible = true;
+    });
+    _autoRotateEnabled = true;
+    unawaited(SystemChrome.setPreferredOrientations(
+      const <DeviceOrientation>[
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ],
+    ));
+    _showControls();
+  }
+
+  Size _appPictureInPictureSize(Size screenSize, VideoPlayerValue value) {
+    final availableWidth = math.max(1.0, screenSize.width - 24);
+    final width = math.min(340.0, math.max(1.0, availableWidth));
+    final aspectRatio = value.aspectRatio > 0 ? value.aspectRatio : 16 / 9;
+    return Size(width, width / aspectRatio);
+  }
+
+  void _onAppPictureInPictureDoubleTap() {
+    final controller = _initializedController;
+    if (controller == null || !mounted) return;
+
+    final screenSize = MediaQuery.sizeOf(context);
+    final baseSize = _appPictureInPictureSize(screenSize, controller.value);
+    final maxWidth = math.max(1.0, screenSize.width - 24);
+    final maxScale = maxWidth / baseSize.width;
+    final nextSize = Size(
+      baseSize.width * maxScale,
+      baseSize.height * maxScale,
+    );
+    final padding = MediaQuery.paddingOf(context);
+    final minTop = padding.top + 12;
+    final maxTop = math.max(
+      minTop,
+      screenSize.height - padding.bottom - nextSize.height - 12,
+    );
+
+    setState(() {
+      _appPictureInPictureScale = maxScale;
+      _appPictureInPictureOffset = Offset(
+        (screenSize.width - nextSize.width) / 2,
+        (_appPictureInPictureOffset?.dy ?? minTop).clamp(minTop, maxTop),
+      );
+    });
+  }
+
+  void _onAppPictureInPictureScaleStart(ScaleStartDetails details) {
+    _appPictureInPictureStartOffset = _appPictureInPictureOffset;
+    _appPictureInPictureStartFocalPoint = details.focalPoint;
+    _appPictureInPictureStartScale = _appPictureInPictureScale;
+  }
+
+  void _onAppPictureInPictureScaleUpdate(ScaleUpdateDetails details) {
+    final startOffset = _appPictureInPictureStartOffset;
+    final startFocalPoint = _appPictureInPictureStartFocalPoint;
+    if (startOffset == null || startFocalPoint == null || !mounted) return;
+    final controller = _initializedController;
+    if (controller == null) return;
+    final screenSize = MediaQuery.sizeOf(context);
+    final baseSize = _appPictureInPictureSize(screenSize, controller.value);
+    final maxWidth = math.max(1.0, screenSize.width - 24);
+    final maxScale = maxWidth / baseSize.width;
+    final nextScale = (_appPictureInPictureStartScale * details.scale)
+        .clamp(.65, maxScale)
+        .toDouble();
+    final nextSize = Size(
+      baseSize.width * nextScale,
+      baseSize.height * nextScale,
+    );
+    final padding = MediaQuery.paddingOf(context);
+    final maxLeft = math.max(12.0, screenSize.width - nextSize.width - 12);
+    final maxTop = math.max(
+      padding.top + 12,
+      screenSize.height - padding.bottom - nextSize.height - 12,
+    );
+    setState(() {
+      _appPictureInPictureScale = nextScale;
+      _appPictureInPictureOffset = Offset(
+        (startOffset.dx + details.focalPoint.dx - startFocalPoint.dx)
+            .clamp(12.0, maxLeft),
+        (startOffset.dy + details.focalPoint.dy - startFocalPoint.dy)
+            .clamp(padding.top + 12, maxTop),
+      );
+    });
+  }
+
+  void _toggleAppPictureInPictureControls() {
+    setState(() {
+      _appPictureInPictureControlsVisible =
+          !_appPictureInPictureControlsVisible;
+    });
+  }
+
+  Future<void> _toggleOrientation() async {
+    final landscape = _orientation == _PlayerOrientation.landscape;
+    _autoRotateEnabled = false;
+    await SystemChrome.setPreferredOrientations(
+      landscape
+          ? const <DeviceOrientation>[DeviceOrientation.portraitUp]
+          : const <DeviceOrientation>[
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ],
+    );
+    if (mounted) {
+      setState(() {
+        _orientation = landscape
+            ? _PlayerOrientation.portrait
+            : _PlayerOrientation.landscape;
+      });
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _loadGeneration++;
+    _saveTimer?.cancel();
+    _controlsHideTimer?.cancel();
+    _autoRotateEnabled = false;
+    _removeAppPictureInPictureOverlay();
+    widget.onAppPictureInPictureChanged?.call(false);
+    unawaited(_pictureInPicture.setEventHandlers());
+    if (_isInPictureInPicture) {
+      unawaited(_pictureInPicture.stop());
+    }
+    if (!_isClosing) unawaited(_save());
+    unawaited(SystemChrome.setPreferredOrientations(DeviceOrientation.values));
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeListener(_onControllerChanged);
+      unawaited(controller.dispose());
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    final value = controller?.value;
+    final isReady = value?.isInitialized == true;
+
+    if (_isInAppPictureInPicture && controller != null) {
+      // The transparent player route is above the detail page while the
+      // window is in the root overlay. On iOS, an edge-swipe would otherwise
+      // pop this route instead of the visible detail page and dispose PiP.
+      return WillPopScope(
+        onWillPop: () async => false,
+        child: const IgnorePointer(child: SizedBox.expand()),
+      );
+    }
+
+    if (_isInPictureInPicture && isReady && controller != null) {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return const ColoredBox(
+          color: Colors.black,
+          child: Center(
+            child: Icon(
+              Icons.picture_in_picture_alt_rounded,
+              color: Colors.white54,
+              size: 56,
+            ),
+          ),
+        );
+      }
+      return ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: AspectRatio(
+            aspectRatio: value!.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+            child: VideoPlayer(controller),
+          ),
+        ),
+      );
+    }
+
+    return WillPopScope(
+      onWillPop: () async {
+        await _closePlayer();
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_error != null)
+                _PlayerFailure(
+                  error: _error!,
+                  onClose: () => Navigator.pop(context),
+                )
+              else if (!isReady || controller == null)
+                const Center(
+                  child: CircularProgressIndicator(color: CineoColors.primary),
+                )
+              else
+                Center(
+                  child: AspectRatio(
+                    aspectRatio:
+                        value!.aspectRatio > 0 ? value.aspectRatio : 16 / 9,
+                    child: VideoPlayer(controller),
+                  ),
+                ),
+              if (_error == null && isReady && controller != null)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: _toggleControls,
+                    onVerticalDragUpdate: _handleVerticalDrag,
+                    onHorizontalDragUpdate: _handleHorizontalDrag,
+                  ),
+                ),
+              if (_gestureIndicatorType != null &&
+                  _gestureIndicatorPosition != null)
+                Positioned(
+                  left: _gestureIndicatorPosition!.dx - 40,
+                  top: _gestureIndicatorPosition!.dy - 40,
+                  child: _GestureIndicator(
+                    type: _gestureIndicatorType!,
+                    value: _gestureIndicatorType == 'brightness'
+                        ? _brightness
+                        : _volume,
+                  ),
+                ),
+              if (_error == null)
+                IgnorePointer(
+                  ignoring: !_controlsVisible,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: _controlsVisible ? 1 : 0,
+                    child: _PlayerControls(
+                      controller: controller,
+                      isLoading: !isReady || controller == null,
+                      title: _media.title,
+                      isPlaying: value?.isPlaying ?? false,
+                      speed: _playbackSpeed,
+                      canGoPrevious: isReady && _currentEpisodeIndex > 0,
+                      canGoNext: isReady &&
+                          _currentEpisodeIndex < _episodes.length - 1,
+                      hasEpisodes: isReady && _episodes.length > 1,
+                      pictureInPictureAvailable: isReady,
+                      onClose: _closePlayer,
+                      onPlayPause: _togglePlayPause,
+                      onRewind: () => unawaited(
+                        _seekBy(const Duration(seconds: -10)),
+                      ),
+                      onForward: () => unawaited(
+                        _seekBy(const Duration(seconds: 10)),
+                      ),
+                      onPrevious: () => _selectRelativeEpisode(-1),
+                      onNext: () => _selectRelativeEpisode(1),
+                      onSpeedChanged: _setPlaybackSpeed,
+                      onOpenEpisodes: _openEpisodePanel,
+                      canSwitchSource: (widget.onSearchOtherSources != null ||
+                              widget.onSearchOtherSourcesProgressively !=
+                                  null) &&
+                          widget.onLoadAlternative != null,
+                      isSwitchingSource: _searchingOtherSources,
+                      onOpenSource: _openSourcePanel,
+                      isLandscape: _orientation == _PlayerOrientation.landscape,
+                      onOpenSystemPlayer: _openSystemPlayer,
+                      onToggleOrientation: _toggleOrientation,
+                      onPictureInPicture: isReady
+                          ? () => unawaited(_openAppPictureInPicture())
+                          : null,
+                      onControlsInteraction: _showControls,
+                      onToggleControls: _toggleControls,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AppPictureInPictureSurface extends StatelessWidget {
+  const _AppPictureInPictureSurface({
+    required this.controller,
+    required this.title,
+    required this.speed,
+    required this.controlsVisible,
+    required this.scale,
+    required this.offset,
+    required this.onScaleStart,
+    required this.onScaleUpdate,
+    required this.onDoubleTap,
+    required this.onToggleControls,
+    required this.onClose,
+    required this.onReturnToPlayer,
+    required this.onPlayPause,
+    required this.onSpeedChanged,
+    required this.onRewind,
+    required this.onForward,
+  });
+
+  final VideoPlayerController controller;
+  final String title;
+  final double speed;
+  final bool controlsVisible;
+  final double scale;
+  final Offset? offset;
+  final GestureScaleStartCallback onScaleStart;
+  final GestureScaleUpdateCallback onScaleUpdate;
+  final VoidCallback onDoubleTap;
+  final VoidCallback onToggleControls;
+  final VoidCallback onClose;
+  final VoidCallback onReturnToPlayer;
+  final VoidCallback onPlayPause;
+  final ValueChanged<double> onSpeedChanged;
+  final VoidCallback onRewind;
+  final VoidCallback onForward;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = controller.value;
+    final screenSize = MediaQuery.sizeOf(context);
+    final availableWidth = math.max(1.0, screenSize.width - 24);
+    final baseWidth = math.min(340.0, math.max(1.0, availableWidth));
+    final aspectRatio = value.aspectRatio > 0 ? value.aspectRatio : 16 / 9;
+    final baseSize = Size(baseWidth, baseWidth / aspectRatio);
+    final windowSize = Size(
+      baseSize.width * scale,
+      baseSize.height * scale,
+    );
+    final windowOffset = offset ??
+        Offset(
+          screenSize.width - windowSize.width - 16,
+          MediaQuery.paddingOf(context).top + 12,
+        );
+
+    // Keep the route's transparent area out of hit testing so taps can reach
+    // the page underneath the in-app picture-in-picture window.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          left: windowOffset.dx,
+          top: windowOffset.dy,
+          width: windowSize.width,
+          height: windowSize.height,
+          child: Material(
+            color: Colors.black,
+            elevation: 14,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToggleControls,
+              onDoubleTap: onDoubleTap,
+              onScaleStart: onScaleStart,
+              onScaleUpdate: onScaleUpdate,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Center(
+                    child: AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: VideoPlayer(controller),
+                    ),
+                  ),
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 160),
+                    opacity: controlsVisible ? 1 : 0,
+                    child: IgnorePointer(
+                      ignoring: !controlsVisible,
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black87,
+                              Colors.transparent,
+                              Colors.black87,
+                            ],
+                            stops: [0, .45, 1],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 2, 2, 0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  PopupMenuButton<double>(
+                                    tooltip: '播放速度',
+                                    initialValue: speed,
+                                    onSelected: onSpeedChanged,
+                                    itemBuilder: (context) =>
+                                        supportedPlaybackSpeeds
+                                            .map((value) =>
+                                                CheckedPopupMenuItem<double>(
+                                                  value: value,
+                                                  checked: value == speed,
+                                                  child: Text('${value}x'),
+                                                ))
+                                            .toList(),
+                                    child: SizedBox(
+                                      width: 44,
+                                      height: 40,
+                                      child: Center(
+                                        child: Text(
+                                          '${speed}x',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: '回到播放页面',
+                                    visualDensity: VisualDensity.compact,
+                                    color: Colors.white,
+                                    onPressed: onReturnToPlayer,
+                                    icon: const Icon(
+                                      Icons.open_in_full_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: '关闭悬浮播放',
+                                    visualDensity: VisualDensity.compact,
+                                    color: Colors.white,
+                                    onPressed: onClose,
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 19,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  tooltip: '快退 10 秒',
+                                  color: Colors.white,
+                                  onPressed: onRewind,
+                                  icon: const Icon(Icons.replay_10_rounded),
+                                ),
+                                IconButton(
+                                  tooltip: value.isPlaying ? '暂停' : '播放',
+                                  color: CineoColors.primary,
+                                  iconSize: 34,
+                                  onPressed: onPlayPause,
+                                  icon: Icon(
+                                    value.isPlaying
+                                        ? Icons.pause_circle_filled_rounded
+                                        : Icons.play_circle_fill_rounded,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: '快进 10 秒',
+                                  color: Colors.white,
+                                  onPressed: onForward,
+                                  icon: const Icon(Icons.forward_10_rounded),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EpisodeBottomSheet extends StatefulWidget {
+  const _EpisodeBottomSheet({
+    required this.episodes,
+    required this.activeOptionId,
+    required this.onSelected,
+  });
+
+  final List<PlaybackOption> episodes;
+  final String activeOptionId;
+  final ValueChanged<PlaybackOption> onSelected;
+
+  @override
+  State<_EpisodeBottomSheet> createState() => _EpisodeBottomSheetState();
+}
+
+class _PlayerSourceSheet extends StatefulWidget {
+  const _PlayerSourceSheet({
+    required this.currentMedia,
+    this.onSearch,
+    this.onSearchProgressively,
+    required this.activeSourceId,
+  });
+
+  final MediaItem currentMedia;
+  final Future<List<MediaItem>> Function(MediaItem media)? onSearch;
+  final Stream<SourceSearchProgress> Function(MediaItem media)?
+      onSearchProgressively;
+  final String? activeSourceId;
+
+  @override
+  State<_PlayerSourceSheet> createState() => _PlayerSourceSheetState();
+}
+
+class _PlayerSourceSheetState extends State<_PlayerSourceSheet> {
+  late final List<MediaItem> _matches = <MediaItem>[widget.currentMedia];
+  StreamSubscription<SourceSearchProgress>? _subscription;
+  int _searched = 0;
+  int _total = 0;
+  bool _loading = true;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final progressiveFinder = widget.onSearchProgressively;
+    if (progressiveFinder != null) {
+      _subscription = progressiveFinder(widget.currentMedia).listen(
+        _applyProgress,
+        onError: (_) => _finish(failed: true),
+        onDone: _finish,
+      );
+    } else {
+      _loadLegacyResults();
+    }
+  }
+
+  Future<void> _loadLegacyResults() async {
+    try {
+      final matches = await widget.onSearch!(widget.currentMedia);
+      if (!mounted) return;
+      setState(() {
+        _matches.addAll(matches);
+        _loading = false;
+      });
+    } catch (_) {
+      _finish(failed: true);
+    }
+  }
+
+  void _applyProgress(SourceSearchProgress progress) {
+    if (!mounted) return;
+    setState(() {
+      _searched = progress.searched;
+      _total = progress.total;
+      _matches.addAll(progress.matches);
+      _loading = !progress.isComplete;
+    });
+  }
+
+  void _finish({bool failed = false}) {
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _failed = failed;
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sites = <String, MediaItem>{};
+    for (final media in _matches) {
+      final sourceId = media.sourceId?.trim() ?? '';
+      if (sourceId.isNotEmpty) sites.putIfAbsent(sourceId, () => media);
+    }
+    final ordered = sites.values.toList()
+      ..sort((left, right) {
+        if (left.sourceId == widget.activeSourceId) return -1;
+        if (right.sourceId == widget.activeSourceId) return 1;
+        return 0;
+      });
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * .76,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                '选择资源站',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
+              child: Text(
+                '切换后会自动定位到相同集数；目标源未提供时播放其第一集。',
+                style: TextStyle(color: CineoColors.textSecondary),
+              ),
+            ),
+            if (widget.onSearchProgressively != null)
+              Padding(
+                key: const ValueKey('player-source-search-progress'),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '$_searched / $_total',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: CineoColors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _loading ? '正在查询普通源' : '查询完成',
+                          style: const TextStyle(
+                            color: CineoColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: _total == 0
+                          ? (_loading ? null : 1)
+                          : _searched / _total,
+                      minHeight: 4,
+                      color: CineoColors.primary,
+                      backgroundColor: CineoColors.surfaceOverlay,
+                    ),
+                  ],
+                ),
+              ),
+            if (!_loading && ordered.length == 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                child: Text(
+                  _failed ? '部分视频源查询失败，请稍后重试。' : '已查询所有普通视频源，暂未找到其他匹配内容。',
+                  style: const TextStyle(color: CineoColors.textSecondary),
+                ),
+              ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                itemCount: ordered.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final media = ordered[index];
+                  final selected = media.sourceId == widget.activeSourceId;
+                  final sourceName = media.sourceName?.trim().isNotEmpty == true
+                      ? media.sourceName!.trim()
+                      : '资源站';
+                  final posterUrl = _posterUrlFor(media);
+                  return Material(
+                    color: selected
+                        ? CineoColors.primaryContainer
+                        : CineoColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      key: ValueKey('player-media-site-${media.sourceId}'),
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => Navigator.of(context).pop(media),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 56,
+                              height: 82,
+                              child: MediaImage(
+                                url: posterUrl,
+                                borderRadius: BorderRadius.circular(7),
+                                placeholderIcon: selected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.video_library_outlined,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    sourceName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    media.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: CineoColors.textSecondary,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              selected
+                                  ? Icons.check_rounded
+                                  : Icons.chevron_right_rounded,
+                              color: selected
+                                  ? CineoColors.primary
+                                  : CineoColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _posterUrlFor(MediaItem media) {
+    for (final candidate in <String>[
+      widget.currentMedia.posterUrl,
+      widget.currentMedia.backdropUrl,
+      media.posterUrl,
+      media.backdropUrl,
+    ]) {
+      if (candidate.trim().isNotEmpty) return candidate;
+    }
+    return '';
+  }
+}
+
+class _EpisodeBottomSheetState extends State<_EpisodeBottomSheet> {
+  static const _itemExtent = 54.0;
+  static const _itemSpacing = 8.0;
+  late final ScrollController _scrollController;
+  bool _showCurrentEpisodeShortcut = false;
+
+  int get _currentEpisodeIndex =>
+      playbackEpisodeIndex(widget.episodes, widget.activeOptionId);
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
+  }
+
+  void _onScroll() {
+    final isAwayFromCurrent = _scrollController.hasClients &&
+        (_scrollController.offset -
+                    _currentEpisodeIndex * (_itemExtent + _itemSpacing))
+                .abs() >
+            180;
+    if (isAwayFromCurrent != _showCurrentEpisodeShortcut && mounted) {
+      setState(() => _showCurrentEpisodeShortcut = isAwayFromCurrent);
+    }
+  }
+
+  void _scrollToCurrent() {
+    if (!_scrollController.hasClients) return;
+    final target = math.min(
+      math.max(
+        0.0,
+        _currentEpisodeIndex * (_itemExtent + _itemSpacing) - _itemExtent,
+      ),
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = math.min(MediaQuery.sizeOf(context).height * .72, 620.0);
+    final currentLabel =
+        episodeDisplayLabel(widget.episodes[_currentEpisodeIndex]);
+    return SizedBox(
+      height: height,
+      child: Material(
+        color: CineoColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: CineoColors.divider,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 8, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '选集',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${widget.episodes.length} 集 · 正在播放 $currentLabel',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: CineoColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '关闭选集',
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: CineoColors.divider),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                      itemCount: widget.episodes.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: _itemSpacing),
+                      itemBuilder: (context, index) {
+                        final episode = widget.episodes[index];
+                        final selected = episode.id == widget.activeOptionId;
+                        return SizedBox(
+                          height: _itemExtent,
+                          child: Material(
+                            color: selected
+                                ? CineoColors.primaryContainer
+                                : CineoColors.surfaceElevated,
+                            borderRadius: BorderRadius.circular(10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(10),
+                              onTap: () => widget.onSelected(episode),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? CineoColors.primary
+                                            : CineoColors.surfaceOverlay,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        selected
+                                            ? Icons.play_arrow_rounded
+                                            : Icons.movie_outlined,
+                                        size: 17,
+                                        color: selected
+                                            ? const Color(0xff251300)
+                                            : CineoColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        episodeDisplayLabel(episode),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: selected
+                                              ? CineoColors.primaryLight
+                                              : CineoColors.textPrimary,
+                                          fontWeight: selected
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (selected)
+                                      const Text(
+                                        '播放中',
+                                        style: TextStyle(
+                                          color: CineoColors.primaryLight,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (_showCurrentEpisodeShortcut)
+                Positioned(
+                  right: 20,
+                  bottom: 20,
+                  child: FloatingActionButton.small(
+                    heroTag: 'player-current-episode',
+                    tooltip: '定位当前集',
+                    onPressed: _scrollToCurrent,
+                    child: const Icon(Icons.my_location_rounded),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerControls extends StatelessWidget {
+  const _PlayerControls({
+    required this.controller,
+    required this.isLoading,
+    required this.title,
+    required this.isPlaying,
+    required this.speed,
+    required this.canGoPrevious,
+    required this.canGoNext,
+    required this.hasEpisodes,
+    required this.pictureInPictureAvailable,
+    required this.onClose,
+    required this.onPlayPause,
+    required this.onRewind,
+    required this.onForward,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onSpeedChanged,
+    required this.onOpenEpisodes,
+    required this.canSwitchSource,
+    required this.isSwitchingSource,
+    required this.onOpenSource,
+    required this.isLandscape,
+    required this.onOpenSystemPlayer,
+    required this.onToggleOrientation,
+    required this.onPictureInPicture,
+    required this.onControlsInteraction,
+    required this.onToggleControls,
+  });
+
+  final VideoPlayerController? controller;
+  final bool isLoading;
+  final String title;
+  final bool isPlaying;
+  final double speed;
+  final bool canGoPrevious;
+  final bool canGoNext;
+  final bool hasEpisodes;
+  final bool pictureInPictureAvailable;
+  final VoidCallback onClose;
+  final VoidCallback onPlayPause;
+  final VoidCallback onRewind;
+  final VoidCallback onForward;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final ValueChanged<double> onSpeedChanged;
+  final VoidCallback onOpenEpisodes;
+  final bool canSwitchSource;
+  final bool isSwitchingSource;
+  final VoidCallback onOpenSource;
+  final bool isLandscape;
+  final VoidCallback onOpenSystemPlayer;
+  final VoidCallback onToggleOrientation;
+  final VoidCallback? onPictureInPicture;
+  final VoidCallback onControlsInteraction;
+  final VoidCallback onToggleControls;
+
+  @override
+  Widget build(BuildContext context) {
+    final playbackControlsEnabled = !isLoading && controller != null;
+    return Listener(
+      onPointerDown: (_) => onControlsInteraction(),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: isLoading ? null : onToggleControls,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.black54, Colors.transparent, Color(0xCC000000)],
+              stops: [0, .32, 1],
+            ),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              SafeArea(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            tooltip: '返回',
+                            onPressed: onClose,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                          ),
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (canSwitchSource)
+                            IconButton(
+                              tooltip: '搜索其他播放源',
+                              onPressed:
+                                  isSwitchingSource ? null : onOpenSource,
+                              icon: isSwitchingSource
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.travel_explore_rounded),
+                            ),
+                          IconButton(
+                            tooltip: '放大播放',
+                            onPressed: playbackControlsEnabled
+                                ? onOpenSystemPlayer
+                                : null,
+                            icon: const Icon(Icons.zoom_out_map_rounded),
+                          ),
+                          _PictureInPictureButton(
+                            available: pictureInPictureAvailable,
+                            onPressed: onPictureInPicture,
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(.42),
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _PlayerSeekButton(
+                              tooltip: '快退 10 秒',
+                              icon: Icons.replay_10_rounded,
+                              onPressed:
+                                  playbackControlsEnabled ? onRewind : null,
+                            ),
+                            IconButton(
+                              tooltip: '上一集',
+                              onPressed:
+                                  playbackControlsEnabled && canGoPrevious
+                                      ? onPrevious
+                                      : null,
+                              icon: const Icon(Icons.skip_previous_rounded),
+                            ),
+                            IconButton(
+                              tooltip: isPlaying ? '暂停' : '播放',
+                              iconSize: 54,
+                              color: CineoColors.primary,
+                              onPressed:
+                                  playbackControlsEnabled ? onPlayPause : null,
+                              icon: Icon(
+                                isPlaying
+                                    ? Icons.pause_circle_filled_rounded
+                                    : Icons.play_circle_fill_rounded,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: '下一集',
+                              onPressed: playbackControlsEnabled && canGoNext
+                                  ? onNext
+                                  : null,
+                              icon: const Icon(Icons.skip_next_rounded),
+                            ),
+                            _PlayerSeekButton(
+                              tooltip: '快进 10 秒',
+                              icon: Icons.forward_10_rounded,
+                              onPressed:
+                                  playbackControlsEnabled ? onForward : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      if (playbackControlsEnabled)
+                        VideoProgressIndicator(
+                          controller!,
+                          allowScrubbing: true,
+                          colors: const VideoProgressColors(
+                            playedColor: CineoColors.primary,
+                            bufferedColor: Colors.white38,
+                            backgroundColor: Colors.white24,
+                          ),
+                        )
+                      else
+                        const SizedBox(
+                          height: 4,
+                          child: LinearProgressIndicator(
+                            color: CineoColors.primary,
+                            backgroundColor: Colors.white24,
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              playbackControlsEnabled
+                                  ? '${formatPlaybackDuration(controller!.value.position)} / '
+                                      '${formatPlaybackDuration(controller!.value.duration)}'
+                                  : '加载中',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          PopupMenuButton<double>(
+                            tooltip: '播放速度',
+                            initialValue: speed,
+                            onSelected:
+                                playbackControlsEnabled ? onSpeedChanged : null,
+                            itemBuilder: (context) => supportedPlaybackSpeeds
+                                .map(
+                                  (value) => PopupMenuItem<double>(
+                                    value: value,
+                                    child: Text('${value}x'),
+                                  ),
+                                )
+                                .toList(),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                '${speed}x',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                          if (hasEpisodes)
+                            IconButton(
+                              tooltip: '打开选集',
+                              onPressed: playbackControlsEnabled
+                                  ? onOpenEpisodes
+                                  : null,
+                              icon: const Icon(Icons.list_alt_rounded),
+                            ),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 4,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: IconButton(
+                    tooltip: isLandscape ? '竖屏播放' : '横屏播放',
+                    onPressed:
+                        playbackControlsEnabled ? onToggleOrientation : null,
+                    icon: Icon(
+                      isLandscape
+                          ? Icons.stay_current_portrait_rounded
+                          : Icons.screen_rotation_alt_rounded,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerSeekButton extends StatelessWidget {
+  const _PlayerSeekButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.white.withOpacity(.1),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, size: 24),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PictureInPictureButton extends StatelessWidget {
+  const _PictureInPictureButton({
+    required this.available,
+    required this.onPressed,
+  });
+
+  final bool available;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: available ? '应用内画中画' : '画中画不可用',
+      onPressed: available ? onPressed : null,
+      icon: const Icon(Icons.picture_in_picture_alt),
+    );
+  }
+}
+
+class _PlayerFailure extends StatelessWidget {
+  const _PlayerFailure({required this.error, required this.onClose});
+
+  final String error;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.play_disabled_outlined,
+                size: 52,
+                color: CineoColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              Text(error),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onClose, child: const Text('返回详情')),
+            ],
+          ),
+        ),
+      );
+}
+
+class _GestureIndicator extends StatelessWidget {
+  const _GestureIndicator({
+    required this.type,
+    required this.value,
+  });
+
+  final String type;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = type == 'brightness'
+        ? Icons.brightness_6_rounded
+        : Icons.volume_up_rounded;
+
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: Colors.white,
+            size: 32,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 60,
+            height: 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: value,
+                backgroundColor: Colors.white24,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  CineoColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${(value * 100).toStringAsFixed(0)}%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

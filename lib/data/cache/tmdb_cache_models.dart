@@ -1,0 +1,186 @@
+import '../../core/models/tmdb_media.dart';
+
+/// JSON helpers for TMDB values persisted by [TmdbDiskCache].
+class TmdbCacheModelCodec {
+  const TmdbCacheModelCodec._();
+
+  static Map<String, dynamic> encodeMatch(TmdbMediaMatch value) {
+    return <String, dynamic>{
+      'id': value.id,
+      'media_type': value.mediaType.name,
+      'title': value.title,
+      'original_title': value.originalTitle,
+      'overview': value.overview,
+      'year': value.year,
+      'poster_url': value.posterUrl,
+      'backdrop_url': value.backdropUrl,
+      'rating': value.rating,
+      'matched_season': value.matchedSeason,
+    };
+  }
+
+  static TmdbMediaMatch decodeMatch(Map<String, dynamic> json) {
+    return TmdbMediaMatch(
+      id: _asInt(json['id']),
+      mediaType: _mediaType(json['media_type']),
+      title: _asString(json['title']),
+      originalTitle: _asString(json['original_title']),
+      overview: _asString(json['overview']),
+      year: _asNullableInt(json['year']),
+      posterUrl: _asString(json['poster_url']),
+      backdropUrl: _asString(json['backdrop_url']),
+      rating: _asDouble(json['rating']),
+      matchedSeason: _asNullableInt(json['matched_season']),
+    );
+  }
+
+  static Map<String, dynamic> encodeDetails(TmdbMediaDetails value) {
+    return <String, dynamic>{
+      ...encodeMatch(value),
+      'runtime': value.runtime,
+      'seasons': value.seasons.map(encodeSeason).toList(),
+      'cast': value.cast.map(encodeCastMember).toList(),
+      'level': value.level.name,
+    };
+  }
+
+  static TmdbMediaDetails decodeDetails(Map<String, dynamic> json) {
+    final seasons = json['seasons'];
+    final cast = json['cast'];
+    return TmdbMediaDetails(
+      id: _asInt(json['id']),
+      mediaType: _mediaType(json['media_type']),
+      title: _asString(json['title']),
+      originalTitle: _asString(json['original_title']),
+      overview: _asString(json['overview']),
+      year: _asNullableInt(json['year']),
+      posterUrl: _asString(json['poster_url']),
+      backdropUrl: _asString(json['backdrop_url']),
+      rating: _asDouble(json['rating']),
+      matchedSeason: _asNullableInt(json['matched_season']),
+      runtime: _asNullableInt(json['runtime']),
+      seasons: seasons is List
+          ? seasons
+              .whereType<Map>()
+              .map((item) => decodeSeason(Map<String, dynamic>.from(item)))
+              .toList()
+          : const <TmdbSeasonMetadata>[],
+      cast: cast is List
+          ? cast
+              .whereType<Map>()
+              .map((item) => decodeCastMember(Map<String, dynamic>.from(item)))
+              .toList()
+          : const <TmdbCastMember>[],
+      level: _detailsLevel(json['level']),
+    );
+  }
+
+  static Map<String, dynamic> encodeCastMember(TmdbCastMember value) {
+    return <String, dynamic>{
+      'id': value.id,
+      'name': value.name,
+      'character': value.character,
+      'profile_url': value.profileUrl,
+    };
+  }
+
+  static TmdbCastMember decodeCastMember(Map<String, dynamic> json) {
+    return TmdbCastMember(
+      id: _asInt(json['id']),
+      name: _asString(json['name']),
+      character: _asString(json['character']),
+      profileUrl: _asString(json['profile_url']),
+    );
+  }
+
+  static Map<String, dynamic> encodeSeason(TmdbSeasonMetadata value) {
+    return <String, dynamic>{
+      'id': value.id,
+      'season_number': value.seasonNumber,
+      'name': value.name,
+      'overview': value.overview,
+      'poster_url': value.posterUrl,
+      'episodes': value.episodes.map(encodeEpisode).toList(),
+    };
+  }
+
+  static TmdbSeasonMetadata decodeSeason(Map<String, dynamic> json) {
+    final episodes = json['episodes'];
+    return TmdbSeasonMetadata(
+      id: _asInt(json['id']),
+      seasonNumber: _asInt(json['season_number']),
+      name: _asString(json['name']),
+      overview: _asString(json['overview']),
+      posterUrl: _asString(json['poster_url']),
+      episodes: episodes is List
+          ? episodes
+              .whereType<Map>()
+              .map((item) => decodeEpisode(Map<String, dynamic>.from(item)))
+              .toList()
+          : const <TmdbEpisodeMetadata>[],
+    );
+  }
+
+  static Map<String, dynamic> encodeEpisode(TmdbEpisodeMetadata value) {
+    return <String, dynamic>{
+      'id': value.id,
+      'season_number': value.seasonNumber,
+      'episode_number': value.episodeNumber,
+      'name': value.name,
+      'overview': value.overview,
+      'still_url': value.stillUrl,
+      'rating': value.rating,
+      'runtime': value.runtime,
+    };
+  }
+
+  static TmdbEpisodeMetadata decodeEpisode(Map<String, dynamic> json) {
+    return TmdbEpisodeMetadata(
+      id: _asInt(json['id']),
+      seasonNumber: _asInt(json['season_number']),
+      episodeNumber: _asInt(json['episode_number']),
+      name: _asString(json['name']),
+      overview: _asString(json['overview']),
+      stillUrl: _asString(json['still_url']),
+      rating: _asDouble(json['rating']),
+      runtime: _asNullableInt(json['runtime']),
+    );
+  }
+
+  static TmdbMediaType _mediaType(Object? value) {
+    return value == TmdbMediaType.movie.name
+        ? TmdbMediaType.movie
+        : TmdbMediaType.tv;
+  }
+
+  static TmdbDetailsLevel _detailsLevel(Object? value) {
+    return switch (value) {
+      'preview' => TmdbDetailsLevel.preview,
+      'enriched' => TmdbDetailsLevel.enriched,
+      'base' => TmdbDetailsLevel.base,
+      // Metadata written before staged loading has no level. It may not have
+      // cast or episode data, so it must be refreshed once in the background.
+      _ => TmdbDetailsLevel.base,
+    };
+  }
+
+  static String _asString(Object? value) => value is String ? value : '';
+
+  static int _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse('$value') ?? 0;
+  }
+
+  static int? _asNullableInt(Object? value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse('$value');
+  }
+
+  static double _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('$value') ?? 0;
+  }
+}

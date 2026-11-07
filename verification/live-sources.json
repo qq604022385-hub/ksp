@@ -1,0 +1,64 @@
+{
+  "checked_at": "2026-11-07T14:25:10.357648Z",
+  "scope": "Live app catalog/search/chapter adapters and 8 KiB media requests; not iOS playback or device acceptance",
+  "sources": [
+    {
+      "source": "看客",
+      "categories": 8,
+      "catalog_items": 20,
+      "search_items": 1,
+      "lines": 1,
+      "episode_identity_stable": true,
+      "playback": [
+        {
+          "line": 0,
+          "resolved": true,
+          "header_names": [
+            "User-Agent"
+          ],
+          "media_status": 206,
+          "sample_bytes": 8192,
+          "hls": true,
+          "mp4": false
+        }
+      ]
+    },
+    {
+      "source": "风暴剧场",
+      "categories": 7,
+      "catalog_items": 20,
+      "search_items": 1,
+      "lines": 3,
+      "episode_identity_stable": true,
+      "playback": [
+        {
+          "line": 0,
+          "resolved": true,
+          "header_names": [
+            "User-Agent"
+          ],
+          "media_status": 200,
+          "sample_bytes": 8192,
+          "hls": true,
+          "mp4": false
+        },
+        {
+          "line": 1,
+          "resolved": true,
+          "header_names": [
+            "User-Agent",
+            "Referer"
+          ],
+          "media_status": 206,
+          "sample_bytes": 8192,
+          "hls": false,
+          "mp4": true
+        },
+        {
+          "line": 2,
+          "error": "风暴剧场播放解析失败"
+        }
+      ]
+    }
+  ]
+}

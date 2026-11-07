@@ -1,0 +1,47 @@
+{
+  "checked_at": "2026-11-07T14:27:48.827740+00:00",
+  "upstream": {
+    "repository": "https://github.com/Predidit/Kazumi",
+    "tag": "2.4.3",
+    "commit": "7265274fac136a0cfe6ee32ea37f32f06ea57672"
+  },
+  "runtime": {
+    "flutter": "3.47.9",
+    "dart": "3.13.7",
+    "host": "Windows x64"
+  },
+  "analysis": {
+    "errors": 0,
+    "warnings": 0,
+    "informational_lints": 17
+  },
+  "tests": {
+    "passed": 234,
+    "failed": 0,
+    "command": "flutter test --no-pub --no-test-assets",
+    "native_binaries": "Exact upstream official Kazumi 2.4.3 Windows release DLLs; temporary QA build-hook copies only",
+    "shader": "Same official release ink_sparkle.frag; avoids Windows tool non-ASCII-path shader compilation failure",
+    "application_dart_sources": "Compiled and tested normally; no source replacements or disabled assertions"
+  },
+  "native_test_assets": {
+    "ech_http.dll": "0b551719696d6969ca3f4085335a3c43eccdbd0228c6fe163c6e1e66be48f7d9",
+    "libmpv-2.dll": "9b1dc3a90d8ecfc407b2847d7748839ffadd44c154b055b9bcc008f32804c977",
+    "media_kit_event_loop.dll": "4bf3d21a955c474b612ed6b053fef5302c410798a61567a61fe3853c32d814c3"
+  },
+  "official_windows_archive_sha256": "9511e593b74e2a8e27ae1e0035ce4a6ee21e92a97b68d716642bcc1564eac929",
+  "production_dependency_resolution": "flutter pub get --offline passed after removing all QA overrides",
+  "workflow_checks": [
+    "YAML parsed",
+    "manual trigger only",
+    "Bundle ID scoped to Runner",
+    "direct IPA artifact upload",
+    "all shell blocks pass bash -n"
+  ],
+  "live_sources": "See live-sources.json: same app catalog/search/chapter adapters and up to 8 KiB of media per tested line",
+  "limits": [
+    "No iOS/cloud build executed",
+    "No iPhone installation or playback acceptance",
+    "No full-file or offline-download acceptance",
+    "Storm third tested line resolver failed"
+  ]
+}

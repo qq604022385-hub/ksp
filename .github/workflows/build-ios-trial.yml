@@ -1,0 +1,69 @@
+name: Build Kazumi iOS trial
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: iOS application bundle identifier
+        required: true
+        default: local.kazumi.kanke.storm
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+      - name: Prepare native build tools
+        run: brew install cmake ninja
+      - name: Restore verified upstream binary resources
+        run: python3 tool/fetch_assets.py
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: dart analyze lib test tool
+      - name: Test
+        run: flutter test --no-pub
+      - name: Set application identity
+        env:
+          APP_BUNDLE_ID: ${{ inputs.bundle_id || 'local.kazumi.kanke.storm' }}
+        run: |
+          set -euo pipefail
+          [[ "$APP_BUNDLE_ID" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]
+          flutter build ios --release --no-codesign --config-only
+          ruby -rxcodeproj <<'RUBY'
+          project = Xcodeproj::Project.open('ios/Runner.xcodeproj')
+          runner = project.targets.find { |target| target.name == 'Runner' }
+          abort 'Runner target not found' unless runner
+          runner.build_configurations.each do |configuration|
+            configuration.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = ENV.fetch('APP_BUNDLE_ID')
+          end
+          project.save
+          RUBY
+      - name: Build iPhone application
+        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
+      - name: Package and validate IPA
+        run: |
+          set -euo pipefail
+          mkdir -p build/trial/Payload build/output
+          cp -R build/ios/iphoneos/Runner.app build/trial/Payload/
+          (cd build/trial && zip -qry ../output/Kazumi-Kanke-Storm-unsigned.ipa Payload)
+          python3 tool/validate_ipa.py build/output/Kazumi-Kanke-Storm-unsigned.ipa
+          shasum -a 256 build/output/*.ipa > build/output/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: build/output/Kazumi-Kanke-Storm-unsigned.ipa
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+

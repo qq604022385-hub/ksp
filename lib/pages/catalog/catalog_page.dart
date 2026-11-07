@@ -1,0 +1,362 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/video/video_playback_args.dart';
+import 'package:kazumi/plugins/builtin_plugins.dart';
+import 'package:kazumi/services/builtin_sources/builtin_catalog.dart';
+import 'package:kazumi/services/builtin_sources/source_protocols.dart';
+
+class CatalogPageView extends StatefulWidget {
+  const CatalogPageView({super.key, this.catalog});
+  final BuiltinCatalog? catalog;
+
+  @override
+  State<CatalogPageView> createState() => _CatalogPageViewState();
+}
+
+class _CatalogPageViewState extends State<CatalogPageView> {
+  final _search = TextEditingController();
+  late final _catalog = widget.catalog ?? BuiltinCatalog.instance;
+  ServiceSource _source = ServiceSources.builtIns.first;
+  List<CatalogCategory> _categories = [];
+  final List<CatalogItem> _items = [];
+  String _category = '';
+  String _keyword = '';
+  String? _error;
+  bool _loading = false;
+  bool _hasMore = true;
+  int _page = 0;
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(reset: true);
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    final source = _source;
+    try {
+      final values = await _catalog.categories(source);
+      if (mounted && source == _source) setState(() => _categories = values);
+    } catch (_) {
+      // Listing/search remain usable if the category endpoint is unavailable.
+    }
+  }
+
+  Future<void> _load({bool reset = false}) async {
+    if (!reset && (_loading || !_hasMore)) return;
+    final generation = reset ? ++_generation : _generation;
+    final page = reset ? 1 : _page + 1;
+    setState(() {
+      _loading = true;
+      _error = null;
+      if (reset) {
+        _items.clear();
+        _hasMore = true;
+      }
+    });
+    try {
+      final result = await _catalog.list(
+        _source,
+        keyword: _keyword,
+        category: _category,
+        page: page,
+      );
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        final ids = _items.map((item) => item.id).toSet();
+        _items.addAll(result.items.where((item) => ids.add(item.id)));
+        _page = page;
+        _hasMore = result.hasMore;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _loading = false;
+        _error = '${_source.name}暂时无法连接，请重试或切换来源';
+      });
+    }
+  }
+
+  void _switchSource(ServiceSource source) {
+    if (_source == source) return;
+    setState(() {
+      _source = source;
+      _category = '';
+      _categories = [];
+    });
+    _load(reset: true);
+    _loadCategories();
+  }
+
+  void _submit() {
+    _keyword = _search.text.trim();
+    FocusScope.of(context).unfocus();
+    _load(reset: true);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('影视')),
+    body: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SegmentedButton<ServiceSource>(
+            segments: [
+              for (final source in ServiceSources.builtIns)
+                ButtonSegment(value: source, label: Text(source.name)),
+            ],
+            selected: {_source},
+            onSelectionChanged: (values) => _switchSource(values.first),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            controller: _search,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              hintText: '搜索电影、电视剧、动漫',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                onPressed: _submit,
+                tooltip: '搜索',
+                icon: const Icon(Icons.arrow_forward),
+              ),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        if (_categories.isNotEmpty && _keyword.isEmpty)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                for (final category in [
+                  const CatalogCategory('', '全部'),
+                  ..._categories,
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(category.name),
+                      selected: category.id == _category,
+                      onSelected: (_) {
+                        _category = category.id;
+                        _load(reset: true);
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _load(reset: true),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = (constraints.maxWidth / 150).floor().clamp(
+                  2,
+                  7,
+                );
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: .56,
+                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final item = _items[index];
+                          return InkWell(
+                            onTap: () => context.pushNamed(
+                              '/catalog/detail',
+                              arguments: item,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: item.cover.isEmpty
+                                          ? const ColoredBox(
+                                              color: Colors.black12,
+                                              child: Icon(Icons.movie_outlined),
+                                            )
+                                          : Image.network(
+                                              item.cover,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  const ColoredBox(
+                                                    color: Colors.black12,
+                                                    child: Icon(
+                                                      Icons.movie_outlined,
+                                                    ),
+                                                  ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  item.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  item.remarks,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          );
+                        }, childCount: _items.length),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(
+                          child: _loading
+                              ? const CircularProgressIndicator()
+                              : _error != null
+                              ? Column(
+                                  children: [
+                                    Text(_error!),
+                                    TextButton(
+                                      onPressed: () =>
+                                          _load(reset: _items.isEmpty),
+                                      child: const Text('重试'),
+                                    ),
+                                  ],
+                                )
+                              : _items.isEmpty
+                              ? const Text('暂无结果，试试其他关键词或来源')
+                              : _hasMore
+                              ? OutlinedButton(
+                                  onPressed: _load,
+                                  child: const Text('加载更多'),
+                                )
+                              : const Text('已加载全部结果'),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class CatalogDetailPage extends StatefulWidget {
+  const CatalogDetailPage({super.key, required this.item});
+  final CatalogItem item;
+
+  @override
+  State<CatalogDetailPage> createState() => _CatalogDetailPageState();
+}
+
+class _CatalogDetailPageState extends State<CatalogDetailPage> {
+  late Future<CatalogDetail> _detail;
+
+  @override
+  void initState() {
+    super.initState();
+    _detail = _fetch();
+  }
+
+  Future<CatalogDetail> _fetch() =>
+      BuiltinCatalog.instance.detail(widget.item.source, widget.item.id);
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(widget.item.title)),
+    body: FutureBuilder<CatalogDetail>(
+      future: _detail,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('未能获取播放列表，请重试'),
+                TextButton(
+                  onPressed: () => setState(() => _detail = _fetch()),
+                  child: const Text('重试'),
+                ),
+              ],
+            ),
+          );
+        }
+        final detail = snapshot.data;
+        if (detail == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text(
+              detail.item.title,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(widget.item.source.name),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('播放 / 续播'),
+              onPressed: () => context.pushNamed(
+                '/video/',
+                arguments: OnlineVideoPlaybackArgs(
+                  bangumiItem: detail.item.toPlayerItem(),
+                  plugin: builtinPlugin(widget.item.source),
+                  title: detail.item.title,
+                  src: detail.item.detailUrl,
+                  roads: detail.roads,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(detail.item.summary.isEmpty ? '暂无简介' : detail.item.summary),
+            const SizedBox(height: 20),
+            Text('播放线路', style: Theme.of(context).textTheme.titleMedium),
+            for (final road in detail.roads)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(road.name),
+                subtitle: Text('${road.data.length} 集'),
+              ),
+          ],
+        );
+      },
+    ),
+  );
+}

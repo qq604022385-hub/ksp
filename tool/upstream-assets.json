@@ -1,0 +1,247 @@
+[
+  {
+    "path": "assets/fonts/MiSans-Regular.ttf",
+    "size": 8122324,
+    "sha256": "9c120f0a849bc0aa5048daae2a3c0f6eecd828b5b33fce682a9622833f5feea6",
+    "git_sha": "afe58544df546f81b7eacc2350bf2a201248e743",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/fonts/MiSans-Regular.ttf"
+  },
+  {
+    "path": "assets/images/forward_80.png",
+    "size": 4719,
+    "sha256": "a31408fb148043f11b186b4a6d96b4bcb4c3a238facb9ac9af65c8176867b726",
+    "git_sha": "4d60a9e1ec05b725579b2f212cdbab7c31c7397c",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/images/forward_80.png"
+  },
+  {
+    "path": "assets/images/loading.png",
+    "size": 3028,
+    "sha256": "38907a7e7c5ca4e9411c2a6c62447dd215fd131e093839625fb8386c90de2934",
+    "git_sha": "357ae73fcd0ce34de69dc5b2bb1d7453b58421a4",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/images/loading.png"
+  },
+  {
+    "path": "assets/images/logo/logo_ios.png",
+    "size": 434051,
+    "sha256": "35205669868ac048287ef9e4043c8e081e84734e5a29add54aed8bf6ba7d77b5",
+    "git_sha": "afcc7b881f3891e60bb8ac196a1a413f3e8c535d",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/images/logo/logo_ios.png"
+  },
+  {
+    "path": "assets/images/logo/logo_rounded.png",
+    "size": 642478,
+    "sha256": "60ca92b2322a5485203a9b2dfff1f0980f87c073e95bd4379e0e77aaf6ab3acc",
+    "git_sha": "fd30b0072df902ca1bb028b7a353669a60e6d7de",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/images/logo/logo_rounded.png"
+  },
+  {
+    "path": "assets/images/noface.jpeg",
+    "size": 3719,
+    "sha256": "824be2d5b27ae6c2b8c2b4b63545a187e38ce6cab33bdb56d65b2d04485c03bb",
+    "git_sha": "16639025550062031f37962882ee5e95570078f8",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/assets/images/noface.jpeg"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+    "size": 456572,
+    "sha256": "76cd82a50f062e481a97a12ba53577e7baff55b41c94f716d2e3cd87643fc075",
+    "git_sha": "473d9f21d34cc1e1ea853728e6fa0231020a7733",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png",
+    "size": 823,
+    "sha256": "9a4897fc3fb8067e8ab946b29cad0f5e970c5c2d837eb68bd4d15bcfc4fa0205",
+    "git_sha": "eec5ac51f654ac42f7938b3d4e56c81336d018db",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png",
+    "size": 2460,
+    "sha256": "3eda3dd264627bcc40f3efc0c7cf2cd4f2cf7c6ad389785d768725b4850d59db",
+    "git_sha": "5fa381d357b02be3b8f6cc05164730bb000e5f97",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png",
+    "size": 4766,
+    "sha256": "57be3fddd259d36d54f5d81ff897e532558e2c3154c8b0055a41e0404429b57b",
+    "git_sha": "e6d5b388040b1c10b4fe943fd519ab23435bfa0c",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png",
+    "size": 1488,
+    "sha256": "ee1e18c117257a08447cf2bd9d0bd339d1721f55ee547c0a6133e27f1ba213e6",
+    "git_sha": "076b61603f02cce1e6f3f45408dd1de7ab1ce104",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png",
+    "size": 4485,
+    "sha256": "07a044b059dfad95d4a711fcfcce22d12b91c8a323a9b2d828a10b30490f48e4",
+    "git_sha": "e6e8679d7c5d0b2f6b723fab9d8953be24bdda4b",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png",
+    "size": 8553,
+    "sha256": "cc010648269910a22f45819930c3e5c087096c5f638785ef8394b40a3ec07323",
+    "git_sha": "de4298998f1f3b814f364b7430d9ac7e809020a2",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png",
+    "size": 2460,
+    "sha256": "3eda3dd264627bcc40f3efc0c7cf2cd4f2cf7c6ad389785d768725b4850d59db",
+    "git_sha": "5fa381d357b02be3b8f6cc05164730bb000e5f97",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png",
+    "size": 7486,
+    "sha256": "108b5457843897bb76a3a3cca9dde5099f84b9fa2274ede0928bde22f4689a81",
+    "git_sha": "aabe723ff6c2d77f8fef18a51644e9314dbb4ff7",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png",
+    "size": 14489,
+    "sha256": "20986258bd0e394f9dffacac2fba48fdbc13ba81b65f3aaa77aded235bbf044e",
+    "git_sha": "03dc2698c0b5b4820094397d4d7d13edf41498fc",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@1x.png",
+    "size": 3541,
+    "sha256": "9820dcb79dbab14b5a31790fbde911d689c2b406a980f596789c7748a33f0ab7",
+    "git_sha": "ab8c6ef3e526c6650e9a593e6b47618742a3066b",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@2x.png",
+    "size": 10741,
+    "sha256": "f801874cdd2ed57702a89ad2975f05e41e8d0e5637a1f9908b642b5008287b57",
+    "git_sha": "1f32078b52d4d98200773651bdfa9fb7be4e18c2",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@1x.png",
+    "size": 4354,
+    "sha256": "7010a0316d31efb6f0053f197476206769cbd014d09fc043a6f0dc8f94d4db3b",
+    "git_sha": "703742818902e97817fb9658cc4b12c3db152674",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@2x.png",
+    "size": 13345,
+    "sha256": "186374596b7568176e466d28e40e62b8764f2beb8e4af3a1d45377fb1a0b15b2",
+    "git_sha": "5a2ddcc57b0154462869b0e33c657cf64d5f5be0",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png",
+    "size": 14489,
+    "sha256": "20986258bd0e394f9dffacac2fba48fdbc13ba81b65f3aaa77aded235bbf044e",
+    "git_sha": "03dc2698c0b5b4820094397d4d7d13edf41498fc",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png",
+    "size": 27958,
+    "sha256": "44193254beefe97678f7d07d204025a78734c986ba9c7470845b0c64ebbe8d75",
+    "git_sha": "c10eada157fa83484056a0138987b007acabb472",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@1x.png",
+    "size": 6377,
+    "sha256": "a0b307eb55499c333a21edffe607ff3b5edb12059e91f4e75efff98a412a64d8",
+    "git_sha": "32d16d364f715da7fcc7a7ebb7d5526c104687ec",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@2x.png",
+    "size": 19420,
+    "sha256": "e2dbf0cd15d3ac7ae9f07c6aae3e1344f020674c72684a90f634048a26790a20",
+    "git_sha": "7c9c679fff1ffc066168de79ec181aed8241d610",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png",
+    "size": 6928,
+    "sha256": "0988bdc67cb98ab84a3840326924aa29060b8876fe6b770e60a301aace796a00",
+    "git_sha": "3e8d90e09856b46dd0d6a5be356513b4aa4f5593",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png",
+    "size": 21208,
+    "sha256": "9c0f872569766d659a573bc5613245fbb4e26dd5de5b90838fe3e22cf7bfee6e",
+    "git_sha": "42ac3dd4a77cac6ba898c9a699147bbdfa960a98",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+    "size": 24791,
+    "sha256": "62b35e83f0309255788e31009c67ae28cccfaf5544d58559cc8c5edec10594c7",
+    "git_sha": "7a74fc849f793633c28f327a62c0881b2152a62d",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchBackground.imageset/background.png",
+    "size": 69,
+    "sha256": "24ac18a7d0e4294906a6f68a8ecd78a78a7453c7f8b61cfa1dc54b3397b16d07",
+    "git_sha": "3107d37fa533216ce211fdcdd7c9b8633fab4cc4",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchBackground.imageset/background.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchBackground.imageset/darkbackground.png",
+    "size": 69,
+    "sha256": "9a9160f5fc1ae5d7d22779c2bbf1777136bd9abc1bbf91d1cde7dbb79bdd94ae",
+    "git_sha": "4c1cab129017feb0cb72ceb18c2f8fcac4ad5acb",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchBackground.imageset/darkbackground.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png",
+    "size": 59814,
+    "sha256": "5e2c5e584b03c4a0bdf272dce9682f48b5796af618e8808d00df5d50bfd6907f",
+    "git_sha": "8b4e9989649e4c3849e87b051f1b67cd9b926626",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png",
+    "size": 182128,
+    "sha256": "5d9896d9e637a4942c4ec7fa548fa1fd76a24cbba778ae5e1b9c28050f6a9abe",
+    "git_sha": "fd028391cc1c75bfafb0d4ff87f2b37078e26ccf",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png",
+    "size": 348429,
+    "sha256": "2e7aabdccc445947a6df7b8a3f33a36911c4d526a3533a9c02129713a511aa5f",
+    "git_sha": "92d5c4b5576d876b0f39c0c260e99af5e1da5aca",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark.png",
+    "size": 59814,
+    "sha256": "5e2c5e584b03c4a0bdf272dce9682f48b5796af618e8808d00df5d50bfd6907f",
+    "git_sha": "8b4e9989649e4c3849e87b051f1b67cd9b926626",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark@2x.png",
+    "size": 182128,
+    "sha256": "5d9896d9e637a4942c4ec7fa548fa1fd76a24cbba778ae5e1b9c28050f6a9abe",
+    "git_sha": "fd028391cc1c75bfafb0d4ff87f2b37078e26ccf",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark@2x.png"
+  },
+  {
+    "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark@3x.png",
+    "size": 348429,
+    "sha256": "2e7aabdccc445947a6df7b8a3f33a36911c4d526a3533a9c02129713a511aa5f",
+    "git_sha": "92d5c4b5576d876b0f39c0c260e99af5e1da5aca",
+    "url": "https://raw.githubusercontent.com/Predidit/Kazumi/7265274fac136a0cfe6ee32ea37f32f06ea57672/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImageDark@3x.png"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/Predidit/Kazumi",
+  "tag": "2.4.3",
+  "commit": "7265274fac136a0cfe6ee32ea37f32f06ea57672",
+  "license": "GPL-3.0",
+  "integration_date": "2026-11-07",
+  "integration": "Kanke and Storm public-content adapters, catalog tab, lazy resolution and media headers",
+  "dependency_sources": "third_party/UPSTREAM.json",
+  "validation": "verification/host-validation.json"
+}

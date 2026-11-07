@@ -1,0 +1,25 @@
+{
+  "source": "Kazumi 2.4.3 dual-source iOS integration",
+  "removed": [
+    "Android/Windows/macOS/Linux/Web application projects",
+    "Fastlane and upstream release workflows",
+    "screenshots and development-editor configurations",
+    "third-party example/test projects and unused plugin platform build sources",
+    "desktop installer configuration and platform-only icon files",
+    "local caches, generated files and diagnostic-only scripts"
+  ],
+  "retained": [
+    "iOS application, Dart app, assets and licenses",
+    "Dart dependencies imported by shared source",
+    "iOS native plugin common headers and build hooks",
+    "regression tests, source probe and IPA validator"
+  ],
+  "deleted_icon_files": [
+    "assets/images/logo/logo_android.png",
+    "assets/images/logo/logo_linux.png",
+    "assets/images/logo/logo_windows.ico",
+    "assets/images/logo/logo_lanczos.ico",
+    "third_party/media-kit/media_kit_video/pubspec_overrides.yaml"
+  ],
+  "remote_old_files": "Will replace main tree; no repository history rewrite"
+}

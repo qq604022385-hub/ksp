@@ -1,6 +1,8 @@
 name: Build iOS IPA
 
 on:
+  push:
+    branches: [main, master]
   workflow_dispatch:
     inputs:
       bundle_id:
@@ -33,7 +35,7 @@ jobs:
         run: flutter build ios --release --no-codesign --config-only
       - name: Compile iPhone application
         env:
-          APP_BUNDLE_ID: ${{ inputs.bundle_id }}
+          APP_BUNDLE_ID: ${{ inputs.bundle_id || 'local.cineo.kanke.storm' }}
         run: |
           set -euo pipefail
           [[ "$APP_BUNDLE_ID" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]

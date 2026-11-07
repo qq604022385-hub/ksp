@@ -38,6 +38,44 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  # Backport Flutter's DefaultLauncher fix to the pinned 6.2.4 plugin.
+  # Xcode 16 adds concurrency annotations to UIApplication.open, so direct
+  # protocol conformance no longer compiles. The wrapper preserves behavior.
+  # Upstream: flutter/packages, url_launcher_ios-v6.3.1, Launcher.swift (BSD-3).
+  launcher_dir = File.join(__dir__, '.symlinks/plugins/url_launcher_ios/ios/Classes')
+  launcher_path = File.join(launcher_dir, 'Launcher.swift')
+  plugin_path = File.join(launcher_dir, 'URLLauncherPlugin.swift')
+  launcher_source = File.read(launcher_path)
+  plugin_source = File.read(plugin_path)
+  legacy_conformance = 'extension UIApplication: Launcher {}'
+  legacy_initializer = 'init(launcher: Launcher = UIApplication.shared)'
+  fixed_initializer = 'init(launcher: Launcher = DefaultLauncher())'
+  if launcher_source.include?(legacy_conformance) && plugin_source.include?(legacy_initializer)
+    wrapper = <<~SWIFT
+      final class DefaultLauncher: Launcher {
+        func canOpenURL(_ url: URL) -> Bool {
+          return UIApplication.shared.canOpenURL(url)
+        }
+
+        func open(
+          _ url: URL,
+          options: [UIApplication.OpenExternalURLOptionsKey: Any],
+          completionHandler completion: ((Bool) -> Void)?
+        ) {
+          UIApplication.shared.open(url, options: options, completionHandler: completion)
+        }
+      }
+    SWIFT
+    launcher_source = launcher_source.sub(legacy_conformance, wrapper)
+    launcher_source = "import UIKit\n\n" + launcher_source unless launcher_source.include?('import UIKit')
+    plugin_source = plugin_source.sub(legacy_initializer, fixed_initializer)
+    File.write(launcher_path, launcher_source)
+    File.write(plugin_path, plugin_source)
+    puts 'Applied url_launcher_ios compatibility fix for Xcode 16'
+  elsif !launcher_source.include?('final class DefaultLauncher: Launcher') || !plugin_source.include?(fixed_initializer)
+    raise 'Unexpected url_launcher_ios source; review Xcode compatibility patch before building'
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end

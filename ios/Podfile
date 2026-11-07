@@ -39,5 +39,12 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    # Keep resource bundles distinct from their enclosing plugin frameworks.
+    if target.product_type == 'com.apple.product-type.bundle'
+      target.build_configurations.each do |configuration|
+        configuration.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] =
+          "org.kazumi.resources.#{target.name.tr('_', '-')}"
+      end
+    end
   end
 end

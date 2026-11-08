@@ -42,7 +42,7 @@ class _CollectButtonState extends State<CollectButton> {
         await controller.deleteCollect(widget.bangumiItem);
       }
     } catch (_) {
-      KazumiDialog.showToast(message: '�ղر���ʧ�ܣ�������');
+      KazumiDialog.showToast(message: '收藏保存失败，请重试');
     } finally {
       widget.onClose?.call();
       if (mounted) setState(() => _busy = false);
@@ -56,7 +56,7 @@ class _CollectButtonState extends State<CollectButton> {
       final saved = controller.collectibles.any(
         (entry) => entry.bangumiItem.id == widget.bangumiItem.id,
       );
-      final label = saved ? 'ȡ���ղ�' : '�ղ�';
+      final label = saved ? '取消收藏' : '收藏';
       final icon = Icon(
         saved ? Icons.favorite : Icons.favorite_border,
         color: widget.color,

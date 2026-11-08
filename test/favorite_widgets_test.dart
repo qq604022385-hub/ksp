@@ -13,8 +13,8 @@ import 'package:kazumi/services/builtin_sources/source_protocols.dart';
 
 final _item = CatalogItem(ServiceSources.builtIns.first, {
   'vod_id': 'favorite-regression',
-  'vod_name': '�ղػع�ӰƬ',
-  'vod_content': 'ӰƬ���',
+  'vod_name': '收藏回归影片',
+  'vod_content': '影片简介',
 });
 
 void main() {
@@ -49,11 +49,11 @@ void main() {
           );
           expect(tester.takeException(), isNull);
           expect(find.byType(ErrorWidget), findsNothing);
-          await tester.tap(extended ? find.text('�ղ�') : find.byTooltip('�ղ�'));
+          await tester.tap(extended ? find.text('收藏') : find.byTooltip('收藏'));
           await tester.pumpAndSettle();
           expect(controller.collectibles.single.bangumiItem.id, playerItem.id);
           await tester.tap(
-            extended ? find.text('ȡ���ղ�') : find.byTooltip('ȡ���ղ�'),
+            extended ? find.text('取消收藏') : find.byTooltip('取消收藏'),
           );
           await tester.pumpAndSettle();
           expect(controller.collectibles, isEmpty);
@@ -80,15 +80,15 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         expect(find.byType(ErrorWidget), findsNothing);
-        expect(find.text('ӰƬ���'), findsOneWidget);
-        await tester.tap(find.text('�ղ�'));
+        expect(find.text('影片简介'), findsOneWidget);
+        await tester.tap(find.text('收藏'));
         await tester.pumpAndSettle();
         expect(
           controller.collectibles.single.bangumiItem.info,
           _item.detailUrl,
         );
-        expect(find.text('���ղ�'), findsOneWidget);
-        await tester.tap(find.text('���ղ�'));
+        expect(find.text('已收藏'), findsOneWidget);
+        await tester.tap(find.text('已收藏'));
         await tester.pumpAndSettle();
         expect(controller.collectibles, isEmpty);
         expect(tester.takeException(), isNull);
@@ -153,9 +153,9 @@ class _Catalog extends BuiltinCatalog {
   Future<CatalogDetail> detail(ServiceSource source, String id) async =>
       CatalogDetail(_item, [
         Road(
-          name: '������·',
+          name: '测试线路',
           data: ['https://example.test/play'],
-          identifier: ['�� 1 ��'],
+          identifier: ['第 1 集'],
         ),
       ]);
 }

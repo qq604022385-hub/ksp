@@ -97,7 +97,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
       if (!mounted || generation != _generation) return;
       setState(() {
         _loading = false;
-        _error = '${_source.name}��ʱ�޷����ӣ������Ի��л���Դ';
+        _error = '${_source.name}暂时无法连接，请重试或切换来源';
       });
     }
   }
@@ -121,7 +121,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Ӱ��')),
+    appBar: AppBar(title: const Text('影视')),
     body: Column(
       children: [
         Padding(
@@ -142,11 +142,11 @@ class _CatalogPageViewState extends State<CatalogPageView> {
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _submit(),
             decoration: InputDecoration(
-              hintText: '������Ӱ�����Ӿ硢����',
+              hintText: '搜索电影、电视剧、动漫',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: IconButton(
                 onPressed: _submit,
-                tooltip: '����',
+                tooltip: '搜索',
                 icon: const Icon(Icons.arrow_forward),
               ),
               border: const OutlineInputBorder(),
@@ -161,7 +161,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 for (final category in [
-                  const CatalogCategory('', 'ȫ��'),
+                  const CatalogCategory('', '全部'),
                   ..._categories,
                 ])
                   Padding(
@@ -265,18 +265,18 @@ class _CatalogPageViewState extends State<CatalogPageView> {
                                     TextButton(
                                       onPressed: () =>
                                           _load(reset: _items.isEmpty),
-                                      child: const Text('����'),
+                                      child: const Text('重试'),
                                     ),
                                   ],
                                 )
                               : _items.isEmpty
-                              ? const Text('���޽�������������ؼ��ʻ���Դ')
+                              ? const Text('暂无结果，试试其他关键词或来源')
                               : _hasMore
                               ? OutlinedButton(
                                   onPressed: _load,
-                                  child: const Text('���ظ���'),
+                                  child: const Text('加载更多'),
                                 )
-                              : const Text('�Ѽ���ȫ�����'),
+                              : const Text('已加载全部结果'),
                         ),
                       ),
                     ),
@@ -315,7 +315,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
         await controller.deleteCollect(playerItem);
       }
     } catch (_) {
-      KazumiDialog.showToast(message: '�ղر���ʧ�ܣ�������');
+      KazumiDialog.showToast(message: '收藏保存失败，请重试');
     } finally {
       if (mounted) setState(() => _savingFavorite = false);
     }
@@ -341,10 +341,10 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('δ�ܻ�ȡ�����б���������'),
+                const Text('未能获取播放列表，请重试'),
                 TextButton(
                   onPressed: () => setState(() => _detail = _fetch()),
-                  child: const Text('����'),
+                  child: const Text('重试'),
                 ),
               ],
             ),
@@ -366,7 +366,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
             const SizedBox(height: 16),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: const Text('���� / ����'),
+              label: const Text('播放 / 续播'),
               onPressed: () => context.pushNamed(
                 '/video/',
                 arguments: OnlineVideoPlaybackArgs(
@@ -387,7 +387,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
                 );
                 return OutlinedButton.icon(
                   icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
-                  label: Text(saved ? '���ղ�' : '�ղ�'),
+                  label: Text(saved ? '已收藏' : '收藏'),
                   onPressed: _savingFavorite
                       ? null
                       : () => _toggleFavorite(detail.item),
@@ -395,14 +395,14 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
               },
             ),
             const SizedBox(height: 20),
-            Text(detail.item.summary.isEmpty ? '���޼��' : detail.item.summary),
+            Text(detail.item.summary.isEmpty ? '暂无简介' : detail.item.summary),
             const SizedBox(height: 20),
-            Text('������·', style: Theme.of(context).textTheme.titleMedium),
+            Text('播放线路', style: Theme.of(context).textTheme.titleMedium),
             for (final road in detail.roads)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(road.name),
-                subtitle: Text('${road.data.length} ��'),
+                subtitle: Text('${road.data.length} 集'),
               ),
           ],
         );

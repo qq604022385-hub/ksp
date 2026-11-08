@@ -30,6 +30,8 @@ jobs:
         run: python3 tool/fetch_assets.py
       - name: Resolve dependencies
         run: flutter pub get
+      - name: Prepare verified Apple native dependencies
+        run: python3 tool/prepare_apple_dependencies.py
       - name: Analyze
         run: dart analyze lib test tool
       - name: Test

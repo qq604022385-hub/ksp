@@ -33,7 +33,7 @@ jobs:
       - name: Analyze
         run: dart analyze lib test tool
       - name: Test
-        run: flutter test --no-pub
+        run: python3 tool/run_with_download_retry.py flutter test --no-pub
       - name: Set application identity
         env:
           APP_BUNDLE_ID: ${{ inputs.bundle_id || 'local.kazumi.kanke.storm' }}
@@ -51,7 +51,7 @@ jobs:
           project.save
           RUBY
       - name: Build iPhone application
-        run: flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
+        run: python3 tool/run_with_download_retry.py flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
       - name: Package and validate IPA
         run: |
           set -euo pipefail

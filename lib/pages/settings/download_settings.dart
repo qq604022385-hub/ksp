@@ -21,7 +21,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   final _directoryService = DownloadDirectoryService();
   late int parallelEpisodes;
   late int parallelSegments;
-  late bool downloadDanmaku;
   String downloadDirectory = '';
   String defaultDownloadDirectory = '';
   bool isSelectingDirectory = false;
@@ -33,7 +32,6 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
         GStorage.getSetting(SettingsKeys.downloadParallelEpisodes);
     parallelSegments =
         GStorage.getSetting(SettingsKeys.downloadParallelSegments);
-    downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
     downloadDirectory = _directoryService.customDirectory;
     _loadDefaultDownloadDirectory();
   }
@@ -168,19 +166,7 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                         : null,
                 onPressed: (_) => _selectDownloadDirectory(),
               ),
-              SettingsTile.switchTile(
-                leading: Icons.subtitles_rounded,
-                onToggle: (value) {
-                  setState(() => downloadDanmaku = value ?? !downloadDanmaku);
-                  GStorage.putSetting(
-                      SettingsKeys.downloadDanmaku, downloadDanmaku);
-                },
-                title: Text('缓存弹幕'),
-                description: Text(
-                  '下载视频时同时缓存弹幕数据',
-                ),
-                initialValue: downloadDanmaku,
-              ),
+
             ],
           ),
           SettingsSection(

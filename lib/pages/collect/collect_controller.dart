@@ -106,7 +106,7 @@ abstract class _CollectController with Store {
   Future<_BangumiDeleteSyncAction?> _resolveBangumiDeleteSyncAction(
       BangumiItem bangumiItem) async {
     final bool syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
-    if (!syncEnable) {
+    if (!syncEnable || bangumiItem.id < 0) {
       return _BangumiDeleteSyncAction.deleteLocalOnly;
     }
 
@@ -156,7 +156,7 @@ abstract class _CollectController with Store {
     final bool showImmediateSyncToast =
         GStorage.getSetting(SettingsKeys.bangumiImmediateSyncToastEnable);
 
-    if (!syncEnable) {
+    if (!syncEnable || bangumiId < 0) {
       return true;
     }
 

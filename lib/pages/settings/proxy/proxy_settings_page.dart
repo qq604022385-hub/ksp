@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/settings/network_mirror_settings.dart';
 import 'package:kazumi/bean/settings/settings_detail_scaffold.dart';
 import 'package:kazumi/bean/settings/settings_list.dart';
 import 'package:kazumi/services/network/proxy_manager.dart';
@@ -36,7 +35,6 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       title: const Text('网络设置'),
       body: SettingsList(
         sections: [
-          const NetworkMirrorSettings(),
           SettingsSection(
             title: const Text('代理'),
             tiles: [

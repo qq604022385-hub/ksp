@@ -1,4 +1,4 @@
-name: Build Kazumi iOS trial
+name: Build Kanke iOS
 
 on:
   push:
@@ -58,12 +58,12 @@ jobs:
           mkdir -p build/trial/Payload build/output
           cp -R build/ios/iphoneos/Runner.app build/trial/Payload/
           python3 tool/prepare_ipa.py build/trial/Payload/Runner.app
-          (cd build/trial && zip -qry ../output/Kazumi-Kanke-Storm-unsigned.ipa Payload)
-          python3 tool/validate_ipa.py build/output/Kazumi-Kanke-Storm-unsigned.ipa
+          (cd build/trial && zip -qry ../output/Kanke-iOS-lean-unsigned.ipa Payload)
+          python3 tool/validate_ipa.py build/output/Kanke-iOS-lean-unsigned.ipa
           shasum -a 256 build/output/*.ipa > build/output/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/output/Kazumi-Kanke-Storm-unsigned.ipa
+          path: build/output/Kanke-iOS-lean-unsigned.ipa
           archive: false
           if-no-files-found: error
           retention-days: 14

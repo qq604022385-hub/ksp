@@ -10,13 +10,9 @@ import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/onboarding/onboarding_page.dart';
-import 'package:kazumi/pages/popular/popular_controller.dart';
-import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/route_error_page.dart';
 import 'package:kazumi/pages/search/search_module.dart';
 import 'package:kazumi/pages/settings/settings_module.dart';
-import 'package:kazumi/pages/timeline/timeline_controller.dart';
-import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -45,8 +41,6 @@ final tabModule = createModule(
   register: (c) {
     c
       // Tab state survives tab switches, but is released with the whole shell.
-      ..addSingleton<PopularController>(PopularController.new)
-      ..addSingleton<TimelineController>(TimelineController.new)
       ..route(
         '/',
         child: (context, state) => IndexPage(location: state.uri.path),
@@ -62,11 +56,11 @@ final tabModule = createModule(
             )
             ..route(
               '/catalog/',
-              child: (context, state) => const CatalogPageView(),
+              child: (context, state) => CatalogPageView(
+                initialQuery: state.uri.queryParameters['query'] ?? '',
+              ),
               transition: TransitionType.none,
             )
-            ..module(popularModule)
-            ..module(timelineModule)
             ..module(collectModule)
             ..module(myModule);
         },
@@ -109,7 +103,7 @@ final indexModule = createModule(
       ..route(
         '/error',
         child: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Kazumi')),
+          appBar: AppBar(title: const Text('看客')),
           body: const GeneralErrorWidget(title: '初始化失败', errMsg: '请重新启动应用后再试。'),
         ),
       )

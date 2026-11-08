@@ -54,11 +54,9 @@ class _MyPageState extends State<MyPage> {
       context.pushNamed(switch (destination) {
         MyDestination.theme => '/settings/theme',
         MyDestination.player => '/settings/player',
-        MyDestination.danmaku => '/settings/danmaku/',
         MyDestination.rules => '/settings/plugin/',
         MyDestination.history => '/settings/history/',
         MyDestination.downloads => '/settings/download/',
-        MyDestination.sync => '/settings/sync',
         MyDestination.storage => '/settings/storage',
         MyDestination.about => '/settings/about/',
       });
@@ -70,10 +68,9 @@ class _MyPageState extends State<MyPage> {
         toolbarHeight: 72,
         title: Text(
           '我的',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         needTopOffset: false,
         actions: [
@@ -89,10 +86,8 @@ class _MyPageState extends State<MyPage> {
         top: false,
         bottom: false,
         child: Observer(
-          builder: (context) => MySpaceView(
-            stats: widget.controller.watchStats,
-            onOpen: _open,
-          ),
+          builder: (context) =>
+              MySpaceView(stats: widget.controller.watchStats, onOpen: _open),
         ),
       ),
     );

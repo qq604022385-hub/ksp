@@ -367,7 +367,6 @@ class _PlayerItemState extends State<PlayerItem>
       'screenshot': handleScreenshot,
       'skip': skipOP,
       'exitfullscreen': () => handleShortcutExitFullscreen(),
-      'toggledanmaku': () => handleDanmaku(),
       'speed1': () => setPlaybackSpeed(1.0),
       'speed2': () => setPlaybackSpeed(2.0),
       'speed3': () => setPlaybackSpeed(3.0),

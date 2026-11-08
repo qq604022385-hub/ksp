@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/plugins/builtin_plugins.dart';
@@ -6,7 +9,14 @@ import 'package:kazumi/services/builtin_sources/builtin_catalog.dart';
 import 'package:kazumi/services/builtin_sources/source_protocols.dart';
 
 class CatalogPageView extends StatefulWidget {
-  const CatalogPageView({super.key, this.catalog});
+  const CatalogPageView({
+    super.key,
+    this.catalog,
+    this.initialQuery = '',
+    this.initialSource = '',
+  });
+  final String initialSource;
+  final String initialQuery;
   final BuiltinCatalog? catalog;
 
   @override
@@ -30,6 +40,11 @@ class _CatalogPageViewState extends State<CatalogPageView> {
   @override
   void initState() {
     super.initState();
+    for (final source in ServiceSources.builtIns) {
+      if (source.key == widget.initialSource) _source = source;
+    }
+    _keyword = widget.initialQuery;
+    _search.text = _keyword;
     _load(reset: true);
     _loadCategories();
   }
@@ -286,6 +301,24 @@ class CatalogDetailPage extends StatefulWidget {
 
 class _CatalogDetailPageState extends State<CatalogDetailPage> {
   late Future<CatalogDetail> _detail;
+  bool _savingFavorite = false;
+  Future<void> _toggleFavorite(CatalogItem item) async {
+    if (_savingFavorite) return;
+    setState(() => _savingFavorite = true);
+    try {
+      final controller = context.read<CollectController>();
+      final playerItem = item.toPlayerItem();
+      if (controller.getCollectType(playerItem) == 0) {
+        await controller.addCollect(playerItem);
+      } else {
+        await controller.deleteCollect(playerItem);
+      }
+    } catch (_) {
+      KazumiDialog.showToast(message: '收藏保存失败，请重试');
+    } finally {
+      if (mounted) setState(() => _savingFavorite = false);
+    }
+  }
 
   @override
   void initState() {
@@ -343,6 +376,22 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
                   roads: detail.roads,
                 ),
               ),
+            ),
+            Observer(
+              builder: (context) {
+                final controller = context.read<CollectController>();
+                // Observe local collection changes after adding/removing elsewhere.
+                final saved = controller.collectibles.any(
+                  (entry) => entry.bangumiItem.id == detail.item.localId,
+                );
+                return OutlinedButton.icon(
+                  icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
+                  label: Text(saved ? '已收藏' : '收藏'),
+                  onPressed: _savingFavorite
+                      ? null
+                      : () => _toggleFavorite(detail.item),
+                );
+              },
             ),
             const SizedBox(height: 20),
             Text(detail.item.summary.isEmpty ? '暂无简介' : detail.item.summary),

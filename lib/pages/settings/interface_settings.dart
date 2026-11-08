@@ -19,15 +19,13 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   late String defaultPage;
   late CollectLayout _defaultCollectLayout;
   bool _savingCollectLayout = false;
-  static const _exitBehaviorTitles = ['退出 Kazumi', '最小化至托盘', '每次都询问'];
+  static const _exitBehaviorTitles = ['退出看客', '最小化至托盘', '每次都询问'];
   int _exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior)
       .clamp(0, _exitBehaviorTitles.length - 1);
 
   static const Map<String, String> defaultPageMap = {
     '/tab/catalog/': '影视',
-    '/tab/popular/': '推荐',
-    '/tab/timeline/': '时间表',
-    '/tab/collect/': '追番',
+    '/tab/collect/': '收藏',
     '/tab/my/': '我的',
   };
 
@@ -55,7 +53,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       await GStorage.putSetting(SettingsKeys.defaultCollectLayout, layout.name);
       if (mounted) setState(() => _defaultCollectLayout = layout);
     } catch (_) {
-      if (mounted) KazumiDialog.showToast(message: '追番默认布局保存失败，请重试');
+      if (mounted) KazumiDialog.showToast(message: '收藏默认布局保存失败，请重试');
     } finally {
       if (mounted) setState(() => _savingCollectLayout = false);
     }
@@ -74,15 +72,15 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               description: const Text('设置应用开启时的默认页面'),
               value: defaultPage,
               options: defaultPageMap,
-              fallbackLabel: '推荐',
+              fallbackLabel: '影视',
               onChanged: updateDefaultPage,
             ),
           ]),
           SettingsSection(title: Text('展示信息'), tiles: [
             SettingsDropdownTile<CollectLayout>(
               leading: Icons.view_agenda_rounded,
-              title: const Text('追番默认布局'),
-              description: const Text('下次打开追番页时使用，页面内切换不会改变此设置'),
+              title: const Text('收藏默认布局'),
+              description: const Text('下次打开收藏页时使用，页面内切换不会改变此设置'),
               enabled: !_savingCollectLayout,
               value: _defaultCollectLayout,
               options: {
@@ -98,7 +96,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 setState(() {});
               },
               title: Text('显示评分'),
-              description: Text('关闭后隐藏概览和番剧列表中的评分信息'),
+              description: Text('关闭后隐藏概览和影片列表中的评分信息'),
               initialValue: showRating,
             ),
           ]),

@@ -197,6 +197,25 @@ class CatalogItem {
           ) +
           1);
 
+  static CatalogItem? fromPlayerItem(BangumiItem item) {
+    final uri = Uri.tryParse(item.info);
+    if (uri == null || uri.scheme != 'kazumicatalog' || uri.path != '/detail')
+      return null;
+    final id = uri.queryParameters['id'];
+    if (id == null || id.isEmpty) return null;
+    for (final source in wire.ServiceSources.builtIns) {
+      if (source.key != uri.host) continue;
+      final result = CatalogItem(source, {
+        'vod_id': id,
+        'vod_name': item.nameCn.isEmpty ? item.name : item.nameCn,
+        'vod_pic': item.images['large'] ?? '',
+        'vod_content': item.summary,
+      });
+      return result.localId == item.id ? result : null;
+    }
+    return null;
+  }
+
   BangumiItem toPlayerItem() => BangumiItem(
     id: localId,
     type: 2,
@@ -212,6 +231,6 @@ class CatalogItem {
     ratingScore: 0,
     votes: 0,
     votesCount: [],
-    info: '',
+    info: detailUrl,
   );
 }

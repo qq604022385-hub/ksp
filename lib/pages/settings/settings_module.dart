@@ -5,26 +5,18 @@ import 'package:kazumi/pages/download/download_page_module.dart';
 import 'package:kazumi/pages/history/history_module.dart';
 import 'package:kazumi/pages/logs/logs_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_module.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/settings/decoder_settings.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/download_settings.dart';
 import 'package:kazumi/pages/settings/interface_settings.dart';
-import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/settings/renderer_settings.dart';
 import 'package:kazumi/pages/settings/settings_page.dart';
 import 'package:kazumi/pages/settings/storage_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
-import 'package:kazumi/pages/settings/sync/bangumi_sync_page.dart';
-import 'package:kazumi/pages/settings/sync/sync_settings_page.dart';
-import 'package:kazumi/pages/settings/sync/webdav_server_page.dart';
-import 'package:kazumi/pages/settings/sync/webdav_sync_page.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
-import 'package:kazumi/pages/settings/update_settings.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 
 final settingsModule = createModule(
   path: '/settings',
@@ -35,19 +27,6 @@ final settingsModule = createModule(
       children: (sub) {
         sub
           ..route('/', child: (context, state) => const SettingsIndexPage())
-          ..route('/sync', child: (context, state) => const SyncSettingsPage())
-          ..route('/bangumi/',
-              child: (context, state) => const BangumiSyncPage())
-          ..route('/webdav/',
-              child: (context, state) => WebDavSyncPage(
-                    danmakuShieldSync: inject<DanmakuShieldSyncService>(),
-                  ))
-          ..route('/webdav/editor',
-              child: (context, state) => const WebDavServerPage())
-          ..route(
-            '/update',
-            child: (context, state) => const UpdateSettingsPage(),
-          )
           ..route('/storage',
               child: (context, state) => const StorageSettingsPage())
           ..route('/storage/logs', child: (context, state) => const LogsPage())
@@ -56,10 +35,6 @@ final settingsModule = createModule(
           ..route(
             '/theme/display',
             child: (context, state) => const SetDisplayMode(),
-          )
-          ..route(
-            '/keyboard',
-            child: (context, state) => const KeyboardSettingsPage(),
           )
           ..route('/player',
               child: (context, state) => const PlayerSettingsPage())
@@ -82,7 +57,6 @@ final settingsModule = createModule(
           )
           ..module(aboutModule)
           ..module(pluginModule)
-          ..module(danmakuModule)
           ..route(
             '/download-settings',
             child: (context, state) => const DownloadSettingsPage(),
@@ -94,9 +68,9 @@ final settingsModule = createModule(
       ..route(
         '/about/license',
         child: (context, state) => const LicensePage(
-          applicationName: 'Kazumi',
+          applicationName: '看客',
           applicationVersion: ApiEndpoints.version,
-          applicationLegalese: 'Kazumi · GNU General Public License v3.0',
+          applicationLegalese: '基于 Kazumi · GNU General Public License v3.0',
         ),
       )
       ..module(historyModule)

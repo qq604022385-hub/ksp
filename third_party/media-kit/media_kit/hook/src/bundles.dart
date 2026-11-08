@@ -125,6 +125,9 @@ Future<void> _download(Uri url, File destination) async {
   try {
     final request = await client.getUrl(url);
     request.headers.set(HttpHeaders.userAgentHeader, 'media-kit-build-hook');
+    if (url.host == 'api.github.com') {
+      request.headers.set(HttpHeaders.acceptHeader, 'application/octet-stream');
+    }
     final response = await request.close();
     if (response.statusCode != HttpStatus.ok) {
       throw HttpException(

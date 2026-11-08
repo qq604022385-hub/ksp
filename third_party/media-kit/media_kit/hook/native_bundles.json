@@ -54,32 +54,36 @@
       "library": "libmpv.so.2"
     },
     "ios_arm64": {
-      "url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_ios-universal-video-default.tar.gz",
+      "url": "https://api.github.com/repos/Predidit/libmpv-darwin-build/releases/assets/510123002",
       "sha256": "d428641cc6c100de8234eae04e229966e46949eb73fcabd526a008a02e9bf968",
       "format": "tar.gz",
       "library": "Mpv",
-      "xcframework": true
+      "xcframework": true,
+      "upstream_url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_ios-universal-video-default.tar.gz"
     },
     "ios_x64": {
-      "url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_ios-universal-video-default.tar.gz",
+      "url": "https://api.github.com/repos/Predidit/libmpv-darwin-build/releases/assets/510123002",
       "sha256": "d428641cc6c100de8234eae04e229966e46949eb73fcabd526a008a02e9bf968",
       "format": "tar.gz",
       "library": "Mpv",
-      "xcframework": true
+      "xcframework": true,
+      "upstream_url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_ios-universal-video-default.tar.gz"
     },
     "macos_arm64": {
-      "url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_macos-universal-video-default.tar.gz",
+      "url": "https://api.github.com/repos/Predidit/libmpv-darwin-build/releases/assets/510122976",
       "sha256": "c396976a267eaaa64bc603f3cc1a2ee02d27c7d5d57935d2458f364afdf0f3cb",
       "format": "tar.gz",
       "library": "Mpv",
-      "xcframework": true
+      "xcframework": true,
+      "upstream_url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_macos-universal-video-default.tar.gz"
     },
     "macos_x64": {
-      "url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_macos-universal-video-default.tar.gz",
+      "url": "https://api.github.com/repos/Predidit/libmpv-darwin-build/releases/assets/510122976",
       "sha256": "c396976a267eaaa64bc603f3cc1a2ee02d27c7d5d57935d2458f364afdf0f3cb",
       "format": "tar.gz",
       "library": "Mpv",
-      "xcframework": true
+      "xcframework": true,
+      "upstream_url": "https://github.com/Predidit/libmpv-darwin-build/releases/download/0.6.8/libmpv-xcframeworks_0.6.8_macos-universal-video-default.tar.gz"
     },
     "ohos_arm64": {
       "url": "https://github.com/ErBWs/libmpv-ohos-build/releases/download/20260811/libmpv_aarch64.zip",

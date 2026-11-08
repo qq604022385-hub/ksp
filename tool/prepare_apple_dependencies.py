@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 import platform
 from pathlib import Path
 import subprocess
@@ -19,13 +20,19 @@ def curl(url, destination, *, binary=False):
     parsed = urlparse(url)
     if parsed.scheme != 'https' or parsed.hostname != 'api.github.com' or parsed.username:
         raise ValueError('Expected an official GitHub API URL')
+    token = os.environ.get('GH_TOKEN', '')
+    if any(character in token for character in '\r\n"\\'):
+        raise ValueError('Invalid GitHub token format')
+    # Keep credentials out of argv and exception messages. curl drops the
+    # Authorization header when a download redirects to another origin.
+    configuration = f'header = "Authorization: Bearer {token}"\n' if token else ''
     subprocess.run([
         'curl', '--fail', '--location', '--silent', '--show-error',
         '--retry', '4', '--retry-delay', '3', '--retry-all-errors',
         '--connect-timeout', '20', '--max-time', '180',
         '--header', 'Accept: application/octet-stream' if binary else 'Accept: application/vnd.github+json',
-        '--output', str(destination), url,
-    ], check=True)
+        '--config', '-', '--output', str(destination), url,
+    ], check=True, input=configuration, text=True)
 
 
 def asset_api_url(url, expected):

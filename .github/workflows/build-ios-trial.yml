@@ -31,6 +31,8 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
       - name: Prepare verified Apple native dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 tool/prepare_apple_dependencies.py
       - name: Analyze
         run: dart analyze lib test tool

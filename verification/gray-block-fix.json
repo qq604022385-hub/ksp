@@ -1,0 +1,23 @@
+{
+  "version": "2.4.5",
+  "symptoms": [
+    "large translucent gray region in movie detail",
+    "gray region when player controls appear"
+  ],
+  "cause": "Three context.read<CollectController>() calls requested route-scoped state, but CollectController is registered as a root singleton. The widget throws; Flutter release RenderErrorBox defaults to translucent gray.",
+  "fix": "Resolve the existing root singleton through inject<CollectController>(); do not hide or recolor the error widget.",
+  "reproduction_before": "All six targeted widget tests failed with no scoped CollectController provided.",
+  "regression_after": {
+    "targeted_tests": 6,
+    "full_host_tests": 245,
+    "checks": [
+      "portrait and landscape",
+      "icon and extended player favorites",
+      "detail content remains visible",
+      "add and remove favorites",
+      "no ErrorWidget"
+    ],
+    "analyzer": "no errors or warnings"
+  },
+  "iphone_acceptance": "pending user verification after installing the fixed IPA"
+}

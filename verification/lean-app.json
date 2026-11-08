@@ -1,13 +1,13 @@
 {
-  "version": "2.4.4",
+  "version": "2.4.5",
   "navigation": [
-    "影视",
-    "收藏",
-    "我的"
+    "Ӱ��",
+    "�ղ�",
+    "�ҵ�"
   ],
   "removed_source_files": 103,
   "removed_direct_dependencies": 11,
-  "local_regression_tests": 239,
+  "local_regression_tests": 245,
   "analyzer": "no errors or warnings",
   "local_test_environment": "Flutter 3.47.9 Windows; original official DLLs with QA-only native hooks",
   "phone_acceptance": "not performed",

@@ -97,7 +97,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
       if (!mounted || generation != _generation) return;
       setState(() {
         _loading = false;
-        _error = '${_source.name}暂时无法连接，请重试或切换来源';
+        _error = '${_source.name}��ʱ�޷����ӣ������Ի��л���Դ';
       });
     }
   }
@@ -121,7 +121,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('影视')),
+    appBar: AppBar(title: const Text('Ӱ��')),
     body: Column(
       children: [
         Padding(
@@ -142,11 +142,11 @@ class _CatalogPageViewState extends State<CatalogPageView> {
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _submit(),
             decoration: InputDecoration(
-              hintText: '搜索电影、电视剧、动漫',
+              hintText: '������Ӱ�����Ӿ硢����',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: IconButton(
                 onPressed: _submit,
-                tooltip: '搜索',
+                tooltip: '����',
                 icon: const Icon(Icons.arrow_forward),
               ),
               border: const OutlineInputBorder(),
@@ -161,7 +161,7 @@ class _CatalogPageViewState extends State<CatalogPageView> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 for (final category in [
-                  const CatalogCategory('', '全部'),
+                  const CatalogCategory('', 'ȫ��'),
                   ..._categories,
                 ])
                   Padding(
@@ -265,18 +265,18 @@ class _CatalogPageViewState extends State<CatalogPageView> {
                                     TextButton(
                                       onPressed: () =>
                                           _load(reset: _items.isEmpty),
-                                      child: const Text('重试'),
+                                      child: const Text('����'),
                                     ),
                                   ],
                                 )
                               : _items.isEmpty
-                              ? const Text('暂无结果，试试其他关键词或来源')
+                              ? const Text('���޽�������������ؼ��ʻ���Դ')
                               : _hasMore
                               ? OutlinedButton(
                                   onPressed: _load,
-                                  child: const Text('加载更多'),
+                                  child: const Text('���ظ���'),
                                 )
-                              : const Text('已加载全部结果'),
+                              : const Text('�Ѽ���ȫ�����'),
                         ),
                       ),
                     ),
@@ -292,8 +292,9 @@ class _CatalogPageViewState extends State<CatalogPageView> {
 }
 
 class CatalogDetailPage extends StatefulWidget {
-  const CatalogDetailPage({super.key, required this.item});
+  const CatalogDetailPage({super.key, required this.item, this.catalog});
   final CatalogItem item;
+  final BuiltinCatalog? catalog;
 
   @override
   State<CatalogDetailPage> createState() => _CatalogDetailPageState();
@@ -306,7 +307,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
     if (_savingFavorite) return;
     setState(() => _savingFavorite = true);
     try {
-      final controller = context.read<CollectController>();
+      final controller = inject<CollectController>();
       final playerItem = item.toPlayerItem();
       if (controller.getCollectType(playerItem) == 0) {
         await controller.addCollect(playerItem);
@@ -314,7 +315,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
         await controller.deleteCollect(playerItem);
       }
     } catch (_) {
-      KazumiDialog.showToast(message: '收藏保存失败，请重试');
+      KazumiDialog.showToast(message: '�ղر���ʧ�ܣ�������');
     } finally {
       if (mounted) setState(() => _savingFavorite = false);
     }
@@ -326,8 +327,8 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
     _detail = _fetch();
   }
 
-  Future<CatalogDetail> _fetch() =>
-      BuiltinCatalog.instance.detail(widget.item.source, widget.item.id);
+  Future<CatalogDetail> _fetch() => (widget.catalog ?? BuiltinCatalog.instance)
+      .detail(widget.item.source, widget.item.id);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -340,10 +341,10 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('未能获取播放列表，请重试'),
+                const Text('δ�ܻ�ȡ�����б���������'),
                 TextButton(
                   onPressed: () => setState(() => _detail = _fetch()),
-                  child: const Text('重试'),
+                  child: const Text('����'),
                 ),
               ],
             ),
@@ -365,7 +366,7 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
             const SizedBox(height: 16),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: const Text('播放 / 续播'),
+              label: const Text('���� / ����'),
               onPressed: () => context.pushNamed(
                 '/video/',
                 arguments: OnlineVideoPlaybackArgs(
@@ -379,14 +380,14 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
             ),
             Observer(
               builder: (context) {
-                final controller = context.read<CollectController>();
+                final controller = inject<CollectController>();
                 // Observe local collection changes after adding/removing elsewhere.
                 final saved = controller.collectibles.any(
                   (entry) => entry.bangumiItem.id == detail.item.localId,
                 );
                 return OutlinedButton.icon(
                   icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
-                  label: Text(saved ? '已收藏' : '收藏'),
+                  label: Text(saved ? '���ղ�' : '�ղ�'),
                   onPressed: _savingFavorite
                       ? null
                       : () => _toggleFavorite(detail.item),
@@ -394,14 +395,14 @@ class _CatalogDetailPageState extends State<CatalogDetailPage> {
               },
             ),
             const SizedBox(height: 20),
-            Text(detail.item.summary.isEmpty ? '暂无简介' : detail.item.summary),
+            Text(detail.item.summary.isEmpty ? '���޼��' : detail.item.summary),
             const SizedBox(height: 20),
-            Text('播放线路', style: Theme.of(context).textTheme.titleMedium),
+            Text('������·', style: Theme.of(context).textTheme.titleMedium),
             for (final road in detail.roads)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(road.name),
-                subtitle: Text('${road.data.length} 集'),
+                subtitle: Text('${road.data.length} ��'),
               ),
           ],
         );

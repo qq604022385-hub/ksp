@@ -137,6 +137,7 @@ abstract class _PlayerPlaybackController with Store {
 
   @action
   void resetForInit() {
+    debug.resetVideoGeometry();
     playing = false;
     loading = true;
     isBuffering = true;
@@ -638,3 +639,4 @@ abstract class _PlayerPlaybackController with Store {
     return player.safeScreenshot(format: 'image/png');
   }
 }
+

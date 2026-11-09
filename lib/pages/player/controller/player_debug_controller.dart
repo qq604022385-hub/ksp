@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:kazumi/pages/player/controller/player_video_geometry.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:mobx/mobx.dart';
@@ -12,6 +13,23 @@ class PlayerDebugController = _PlayerDebugController
     with _$PlayerDebugController;
 
 abstract class _PlayerDebugController with Store {
+  final _videoGeometry = Observable(const PlayerVideoGeometry());
+
+  PlayerVideoGeometry get videoGeometry => _videoGeometry.value;
+
+  void updateVideoGeometry(VideoParams params) {
+    runInAction(() => _videoGeometry.value = PlayerVideoGeometry(params));
+  }
+
+  void resetVideoGeometry() {
+    runInAction(() {
+      _videoGeometry.value = const PlayerVideoGeometry();
+      playerWidth = 0;
+      playerHeight = 0;
+      playerVideoParams = '';
+    });
+  }
+
   /// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细
   int playerLogLevel = 2;
 
@@ -62,17 +80,23 @@ abstract class _PlayerDebugController with Store {
     await playerWidthSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
     playerWidthSubscription = player.stream.width.listen((event) {
+      if (!isCurrentPlayer(player)) return;
       playerWidth = event ?? 0;
     });
     await playerHeightSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
     playerHeightSubscription = player.stream.height.listen((event) {
+      if (!isCurrentPlayer(player)) return;
       playerHeight = event ?? 0;
     });
     await playerVideoParamsSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
     playerVideoParamsSubscription = player.stream.videoParams.listen((event) {
-      playerVideoParams = event.toString();
+      if (!isCurrentPlayer(player)) return;
+      runInAction(() {
+        updateVideoGeometry(event);
+        playerVideoParams = event.toString();
+      });
     });
     await playerAudioParamsSubscription?.cancel();
     if (!isCurrentPlayer(player)) return;
@@ -123,6 +147,7 @@ abstract class _PlayerDebugController with Store {
     playerTracksSubscription = null;
     playerAudioBitrateSubscription = null;
     playerVideoBitrateSubscription = null;
+    resetVideoGeometry();
 
     await logSubscription?.cancel();
     await widthSubscription?.cancel();

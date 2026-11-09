@@ -119,9 +119,7 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
     return Observer(builder: (context) {
       final debug = playerController.debug;
       final theme = Theme.of(context);
-      final resolution = debug.playerWidth > 0 && debug.playerHeight > 0
-          ? '${debug.playerWidth} × ${debug.playerHeight}'
-          : '等待画面';
+      final resolution = debug.videoGeometry.resolutionLabel;
       return ListView(
         key: const PageStorageKey('video-details-overview'),
         padding: materialBottomSheetContentPadding,
@@ -323,3 +321,4 @@ class _VideoDetailsSheetState extends State<_VideoDetailsSheet>
     );
   }
 }
+

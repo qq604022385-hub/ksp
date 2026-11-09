@@ -23,6 +23,7 @@ import 'package:kazumi/utils/format.dart';
 import 'package:kazumi/pages/player/player_transport_bar.dart';
 import 'package:kazumi/pages/player/player_screenshot_controls.dart';
 import 'package:kazumi/pages/player/player_progress_bar.dart';
+import 'package:kazumi/pages/player/player_resolution_label.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -540,9 +541,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               ),
               Expanded(
                 child: dtb.DragToMoveArea(
-                  child: compact
-                      ? const SizedBox(height: 40)
-                      : Text(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!compact)
+                        Text(
                           ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
                           style: TextStyle(
                             color: Colors.white,
@@ -552,6 +556,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                      PlayerResolutionLabel(debug: playerController.debug),
+                    ],
+                  ),
                 ),
               ),
               _forwardButton(),

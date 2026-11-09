@@ -6,10 +6,13 @@ import 'package:mobx/mobx.dart';
 /// Explicit fullscreen owns a local history entry; rotation does not.
 class VideoFullscreenController {
   VideoFullscreenController({
-    required Future<void> Function(bool fullscreen) applyFullscreen,
+    required Future<void> Function(bool fullscreen, {bool? portrait})
+    applyFullscreen,
   }) : _applyFullscreen = applyFullscreen;
 
-  final Future<void> Function(bool fullscreen) _applyFullscreen;
+  final Future<void> Function(bool fullscreen, {bool? portrait})
+  _applyFullscreen;
+  bool? _portrait;
   final Observable<LocalHistoryEntry?> _entry = Observable(null);
   ModalRoute<dynamic>? _route;
   int _revision = 0;
@@ -25,6 +28,16 @@ class VideoFullscreenController {
   }
 
   Future<void> toggle() => setFullscreen(!isFullscreen);
+
+  /// Metadata may arrive after entering fullscreen or change with the episode.
+  Future<void> updateVideoOrientation(bool? portrait) {
+    if (_closeFuture != null || _portrait == portrait) return _lastRequest;
+    _portrait = portrait;
+    // Keep the previous orientation while the next source is loading.
+    return isFullscreen && portrait != null
+        ? _requestFullscreen(true)
+        : _lastRequest;
+  }
 
   Future<void> setFullscreen(bool fullscreen) =>
       _setFullscreen(fullscreen, updatePlatform: true);
@@ -79,9 +92,10 @@ class VideoFullscreenController {
 
   Future<void> _requestFullscreen(bool fullscreen) {
     _pendingRequests++;
-    return _lastRequest = _applyFullscreen(fullscreen).whenComplete(() {
-      _pendingRequests--;
-    });
+    return _lastRequest = _applyFullscreen(fullscreen, portrait: _portrait)
+        .whenComplete(() {
+          _pendingRequests--;
+        });
   }
 
   Future<void> close() {

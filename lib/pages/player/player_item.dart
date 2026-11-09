@@ -146,6 +146,7 @@ class _PlayerItemState extends State<PlayerItem>
   late mobx.ReactionDisposer _playerSizeListener;
 
   late mobx.ReactionDisposer _fullscreenListener;
+  late mobx.ReactionDisposer _videoOrientationListener;
 
   @override
   void didChangeMetrics() {
@@ -1258,6 +1259,13 @@ class _PlayerItemState extends State<PlayerItem>
   void initState() {
     super.initState();
     playerController = widget.playerController;
+    _videoOrientationListener = mobx.reaction<bool?>(
+      (_) => playerController.debug.videoGeometry.isPortrait,
+      (portrait) => unawaited(
+        videoPageController.fullscreen.updateVideoOrientation(portrait),
+      ),
+      fireImmediately: true,
+    );
     _initKeyboardActions();
     _initPlayerMenu();
     _fullscreenListener = mobx.reaction<bool>(
@@ -1355,6 +1363,7 @@ class _PlayerItemState extends State<PlayerItem>
   void dispose() {
     // The route-scoped PlayerController owns playback disposal.
     _fullscreenListener();
+    _videoOrientationListener();
     _playerSizeListener();
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
@@ -1653,3 +1662,4 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 }
+

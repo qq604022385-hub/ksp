@@ -140,20 +140,21 @@ class _ScaffoldMenu extends State<ScaffoldMenu> with RouteAware {
     return Scaffold(
       body: _outlet(context),
       bottomNavigationBar: NavigationBar(
+        height: 64,
         destinations: const <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.movie),
-            icon: Icon(Icons.movie_outlined),
+            selectedIcon: Icon(Icons.smart_display_rounded),
+            icon: Icon(Icons.smart_display_outlined),
             label: '影视',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.favorite),
-            icon: Icon(Icons.favorite_outlined),
+            selectedIcon: Icon(Icons.bookmark_rounded),
+            icon: Icon(Icons.bookmark_border_rounded),
             label: '收藏',
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.settings),
-            icon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.person_rounded),
+            icon: Icon(Icons.person_outline_rounded),
             label: '我的',
           ),
         ],

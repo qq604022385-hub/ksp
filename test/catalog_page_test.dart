@@ -16,7 +16,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('看客影片'), findsOneWidget);
-    expect(find.text('电影'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('catalog-category-movie')),
+      findsOneWidget,
+    );
     await tester.enterText(find.byType(TextField), '测试');
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
@@ -69,7 +72,9 @@ class _Catalog extends BuiltinCatalog {
     int page = 1,
   }) async {
     keywords.add(keyword);
-    if (gate != null && source.key == 'kanke') return gate!.future;
+    if (gate != null && source == ServiceSources.builtIns.first) {
+      return gate!.future;
+    }
     return CatalogPage([
       CatalogItem(source, {'vod_id': '1', 'vod_name': '${source.name}影片'}),
     ], false);

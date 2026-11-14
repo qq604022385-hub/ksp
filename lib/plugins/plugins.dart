@@ -1,9 +1,9 @@
 import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/services/plugin/rule_engine_models.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/api_rule_config.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/services/plugin/api_rule_engine.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/services/builtin_sources/builtin_catalog.dart';
@@ -18,8 +18,6 @@ export 'package:kazumi/services/plugin/rule_engine_models.dart'
 String pluginNameKey(String name) => name.toLowerCase();
 
 class Plugin {
-  static final RuleEngine _ruleEngine = RuleEngine();
-
   String api;
   String type;
   String name;
@@ -186,23 +184,6 @@ class Plugin {
 
   bool get requiresNewerClient => int.parse(api) > ApiEndpoints.apiLevel;
 
-  RuleExecutionConfig get _executionConfig => RuleExecutionConfig(
-    pluginName: name,
-    baseUrl: baseUrl,
-    usePost: usePost,
-    searchMode: searchMode,
-    chapterMode: chapterMode,
-    searchUrl: searchURL,
-    searchList: searchList,
-    searchName: searchName,
-    searchResult: searchResult,
-    chapterRoads: chapterRoads,
-    chapterResult: chapterResult,
-    searchApiConfig: searchApiConfig,
-    chapterApiConfig: chapterApiConfig,
-    antiCrawlerConfig: antiCrawlerConfig,
-  );
-
   Future<RuleSearchTrace> traceSearch(
     String keyword, {
     RuleCancelToken? cancelToken,
@@ -215,11 +196,7 @@ class Plugin {
         cancelToken: cancelToken,
       );
     }
-    return _ruleEngine.search(
-      _executionConfig,
-      keyword,
-      cancelToken: cancelToken,
-    );
+    throw const FormatException('本地规则已停用，请从服务器片库选择来源');
   }
 
   Future<RuleChapterTrace> traceChapters(
@@ -234,18 +211,14 @@ class Plugin {
         cancelToken: cancelToken,
       );
     }
-    return _ruleEngine.queryChapters(
-      _executionConfig,
-      source,
-      cancelToken: cancelToken,
-    );
+    throw const FormatException('本地规则已停用，请从服务器片库重新获取影片');
   }
 
   /// Parses HTML harvested from the captcha webview as a search result;
   /// returns null when not applicable, letting callers fall back to
   /// [queryBangumi].
   PluginSearchResponse? parseHarvestedSearch(String html) {
-    return _ruleEngine.tryParseHarvestedSearch(_executionConfig, html);
+    return null;
   }
 
   Future<PluginSearchResponse> queryBangumi(

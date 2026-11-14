@@ -5,6 +5,8 @@ import 'package:kazumi/pages/video/video_playback_args.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/builtin_sources/builtin_catalog.dart';
+import 'package:kazumi/plugins/builtin_plugins.dart';
 import 'package:kazumi/services/plugin/rule_engine_models.dart'
     show RuleCancelToken;
 
@@ -61,9 +63,12 @@ class HistoryPlaybackService {
     if (history.lastSrc.isEmpty) {
       return null;
     }
-    Plugin? targetPlugin;
+    final catalogItem = CatalogItem.fromPlayerItem(history.bangumiItem);
+    Plugin? targetPlugin = catalogItem == null
+        ? null
+        : builtinPlugin(catalogItem.source);
     for (final plugin in _pluginsController.pluginList) {
-      if (plugin.name == history.adapterName) {
+      if (targetPlugin == null && plugin.name == history.adapterName) {
         targetPlugin = plugin;
         break;
       }

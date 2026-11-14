@@ -49,7 +49,7 @@ class _SourceSettingsPageState extends State<SourceSettingsPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  Text(_status[source.key] ?? '内置来源'),
+                  Text(_status[source.key] ?? '服务器管理来源'),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -74,7 +74,7 @@ class _SourceSettingsPageState extends State<SourceSettingsPage> {
         const Padding(
           padding: EdgeInsets.all(12),
           child: Text(
-            '单集无法播放时，可在播放器重新获取地址或切换线路。整个来源不可用时，请切换另一来源；接口协议变更需要更新应用。',
+            '单集无法播放时，可在播放器重新获取地址或切换线路。整个来源不可用时，请切换另一来源；来源及解析规则由管理员在服务器维护。',
           ),
         ),
       ],

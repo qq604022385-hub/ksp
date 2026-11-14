@@ -44,16 +44,12 @@ class PluginBatchUpdateResult {
   bool get hasNoCandidates => candidates == 0;
 }
 
-typedef PluginCatalogLoader = Future<List<PluginHTTPItem>> Function(
-  String repository,
-);
+typedef PluginCatalogLoader =
+    Future<List<PluginHTTPItem>> Function(String repository);
 typedef PluginLoader = Future<Plugin> Function(String repository, String name);
 typedef PluginJsonWriter = Future<void> Function(String jsonData);
-typedef PluginErrorReporter = void Function(
-  String message,
-  Object error,
-  StackTrace stackTrace,
-);
+typedef PluginErrorReporter =
+    void Function(String message, Object error, StackTrace stackTrace);
 typedef _PluginUpdateAttempt = ({PluginUpdateResult result, Plugin? plugin});
 
 void _defaultPluginErrorReporter(
@@ -111,34 +107,9 @@ abstract class _PluginsController with Store {
     final pluginsFile = File('${directory.path}/$_pluginsFileName');
     _pluginsFile = pluginsFile;
     pluginList.clear();
-    if (await pluginsFile.exists()) {
-      final List<dynamic> json = jsonDecode(await pluginsFile.readAsString());
-      pluginList.addAll([for (final item in json) Plugin.fromJson(item)]);
-      KazumiLogger().i('Plugin: Current Plugin number: ${pluginList.length}');
-    } else {
-      await _migrateLegacyPlugins(legacyDirectory);
-    }
-    final marker = File('${directory.path}/builtin-sources-v1');
-    if (!await marker.exists()) {
-      for (final source in ServiceSources.builtIns) {
-        if (!pluginList.any((plugin) => plugin.baseUrl == source.baseUrl)) {
-          pluginList.add(builtinPlugin(source));
-        }
-      }
-      await _savePlugins();
-      await marker.writeAsString('1');
-    }
-  }
-
-  // Before 1.5.1 each rule was a separate JSON file in the parent directory.
-  Future<void> _migrateLegacyPlugins(Directory legacyDirectory) async {
-    final legacyFiles = legacyDirectory.listSync().whereType<File>().where(
-      (file) => file.path.endsWith('.json'),
-    );
-    for (final file in legacyFiles) {
-      pluginList.add(Plugin.fromJson(jsonDecode(await file.readAsString())));
-      await file.delete();
-    }
+    // Never load or execute legacy local source files in the server-managed build.
+    // History, collections and downloaded files use independent stores.
+    pluginList.addAll(ServiceSources.builtIns.map(builtinPlugin));
     await _savePlugins();
   }
 

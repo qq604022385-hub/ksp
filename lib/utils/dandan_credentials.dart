@@ -1,6 +1,2 @@
-// DanDanPlay API credentials for the client signature flow.
-// Release/PR CI injects them via --dart-define=DANDANAPI_APPID / DANDANAPI_KEY.
-const Map<String, String> dandanCredentials = {
-  'id': String.fromEnvironment('DANDANAPI_APPID'),
-  'value': String.fromEnvironment('DANDANAPI_KEY'),
-};
+// Retired service: no third-party credentials may be embedded in this client.
+const Map<String, String> dandanCredentials = {'id': '', 'value': ''};

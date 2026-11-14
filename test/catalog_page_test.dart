@@ -7,6 +7,36 @@ import 'package:kazumi/services/builtin_sources/builtin_catalog.dart';
 import 'package:kazumi/services/builtin_sources/source_protocols.dart';
 
 void main() {
+  testWidgets('new server sources fit a small screen and can be selected', (
+    tester,
+  ) async {
+    final previous = ServiceSources.builtIns;
+    ServiceSources.builtIns = [
+      ...previous,
+      const ServiceSource(
+        'third-protocol-source',
+        '新增的第三个服务器来源',
+        'kankeserver://third-protocol-source',
+        'third-protocol-source-protocol',
+      ),
+    ];
+    addTearDown(() => ServiceSources.builtIns = previous);
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(home: CatalogPageView(catalog: _Catalog())),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButton<ServiceSource>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新增的第三个服务器来源').last);
+    await tester.pumpAndSettle();
+    expect(find.text('新增的第三个服务器来源影片'), findsOneWidget);
+    expect(ServiceSources.builtIns.last.key, 'third-protocol-source');
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('catalog loads, searches and switches source without Bangumi', (
     tester,
   ) async {

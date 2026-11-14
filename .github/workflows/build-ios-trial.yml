@@ -11,7 +11,11 @@ on:
         default: local.kazumi.kanke.storm
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: kanke-ios-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ios:
@@ -19,6 +23,15 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Read application version
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          version = re.search(r'^version:\s*([0-9.]+)\+', Path('pubspec.yaml').read_text(), re.M).group(1)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('APP_VERSION='+version+'\n')
+          PY
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.9'
@@ -30,6 +43,8 @@ jobs:
         run: python3 tool/fetch_assets.py
       - name: Resolve dependencies
         run: flutter pub get
+      - name: Check server-managed release boundary
+        run: python3 tool/check_server_release.py
       - name: Prepare verified Apple native dependencies
         env:
           GH_TOKEN: ${{ github.token }}
@@ -55,20 +70,25 @@ jobs:
           project.save
           RUBY
       - name: Build iPhone application
-        run: python3 tool/run_with_download_retry.py flutter build ios --release --no-codesign --build-number=${{ github.run_number }}
+        run: python3 tool/run_with_download_retry.py flutter build ios --release --no-codesign --obfuscate --split-debug-info=build/private-symbols --dart-define=KANKE_API_URL=https://spht.longxuan.me --build-number=${{ github.run_number }}
       - name: Package and validate IPA
         run: |
           set -euo pipefail
           mkdir -p build/trial/Payload build/output
           cp -R build/ios/iphoneos/Runner.app build/trial/Payload/
           python3 tool/prepare_ipa.py build/trial/Payload/Runner.app
-          (cd build/trial && zip -qry ../output/Kanke-iOS-lean-unsigned.ipa Payload)
-          python3 tool/validate_ipa.py build/output/Kanke-iOS-lean-unsigned.ipa
-          shasum -a 256 build/output/*.ipa > build/output/SHA256SUMS.txt
+          (cd build/trial && zip -qry "../output/Kanke-iOS-${APP_VERSION}-unsigned.ipa" Payload)
+          python3 tool/validate_ipa.py "build/output/Kanke-iOS-${APP_VERSION}-unsigned.ipa" | tee build/output/ipa-verification.json
+          (cd build/output && shasum -a 256 *.ipa > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v7.0.2
         with:
-          path: build/output/Kanke-iOS-lean-unsigned.ipa
+          name: Kanke-iOS-${{ env.APP_VERSION }}-unsigned
+          path: build/output/Kanke-iOS-${{ env.APP_VERSION }}-unsigned.ipa
           archive: false
           if-no-files-found: error
           retention-days: 14
+      - name: Publish validated iOS package to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tool/publish_ios_release.py --version "$APP_VERSION" "build/output/Kanke-iOS-${APP_VERSION}-unsigned.ipa" build/output/SHA256SUMS.txt build/output/ipa-verification.json
 

@@ -10,6 +10,8 @@ import 'package:kazumi/services/sync/danmaku_shield_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/video_app_migration.dart';
+import 'package:kazumi/services/backend/backend_api.dart';
+import 'package:kazumi/services/builtin_sources/source_protocols.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({
@@ -44,6 +46,8 @@ class _InitPageState extends State<InitPage> {
       await migrateVideoAppSettings();
       await widget.collectController.migrateCollect();
       widget.collectController.loadCollectibles();
+      await BackendApi.instance.ensureAuthorized();
+      await ServiceSources.instance.refreshSources();
       await widget.pluginsController.init();
       try {
         await widget.downloadController.init();
@@ -70,12 +74,33 @@ class _InitPageState extends State<InitPage> {
     body: Center(
       child: _error == null
           ? const CircularProgressIndicator()
-          : FilledButton(
-              onPressed: () {
-                setState(() => _error = null);
-                unawaited(_initialize());
-              },
-              child: const Text('初始化失败，点击重试'),
+          : Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SelectableText(
+                    BackendApi.instance.applicationId.isEmpty
+                        ? '正在准备设备授权'
+                        : '设备申请编号：${BackendApi.instance.applicationId}',
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _error is BackendException
+                        ? _error.toString()
+                        : '无法连接授权服务器，请检查网络后重试',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() => _error = null);
+                      unawaited(_initialize());
+                    },
+                    child: const Text('检查授权并重试'),
+                  ),
+                ],
+              ),
             ),
     ),
   );

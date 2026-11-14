@@ -46,7 +46,14 @@ List<CatalogCategory> _orderCategories(
 class _CatalogPageViewState extends State<CatalogPageView> {
   final _search = TextEditingController();
   late final _catalog = widget.catalog ?? BuiltinCatalog.instance;
-  ServiceSource _source = ServiceSources.builtIns.first;
+  ServiceSource _source = ServiceSources.builtIns.isEmpty
+      ? const ServiceSource(
+          'none',
+          '暂无来源',
+          'kankeserver://none',
+          'none-protocol',
+        )
+      : ServiceSources.builtIns.first;
   List<CatalogCategory> _categories = [];
   final List<CatalogItem> _items = [];
   List<_HomeShelf> _shelves = [];
@@ -71,8 +78,37 @@ class _CatalogPageViewState extends State<CatalogPageView> {
     }
     _keyword = widget.initialQuery;
     _search.text = _keyword;
-    _load(reset: true);
-    _loadCategories();
+    unawaited(_bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
+    if (widget.catalog == null) {
+      try {
+        await ServiceSources.instance.refreshSources();
+        if (!mounted) return;
+        final choices = ServiceSources.builtIns;
+        if (choices.isEmpty) {
+          setState(() {
+            _items.clear();
+            _shelves.clear();
+            _categories.clear();
+            _error = '服务器暂无启用来源，请联系管理员';
+          });
+          return;
+        }
+        setState(
+          () => _source = choices.firstWhere(
+            (s) => s.key == _source.key,
+            orElse: () => choices.first,
+          ),
+        );
+      } catch (error) {
+        if (mounted) setState(() => _error = error.toString());
+        return;
+      }
+    }
+    await _load(reset: true);
+    await _loadCategories();
   }
 
   @override
@@ -199,16 +235,20 @@ class _CatalogPageViewState extends State<CatalogPageView> {
         _hasMore = result.hasMore;
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted || generation != _generation) return;
       setState(() {
         _loading = false;
-        _error = '${_source.name}暂时无法连接，请重试或切换来源';
+        _error = error.toString();
       });
     }
   }
 
   Future<void> _refresh() async {
+    if (widget.catalog == null) {
+      await _bootstrap();
+      return;
+    }
     if (_showsHome) {
       await _loadHomeShelves();
     } else {
@@ -256,7 +296,9 @@ class _CatalogPageViewState extends State<CatalogPageView> {
               children: [
                 Text(_error!),
                 TextButton(
-                  onPressed: () => _load(reset: _items.isEmpty),
+                  onPressed: () => widget.catalog == null
+                      ? _bootstrap()
+                      : _load(reset: _items.isEmpty),
                   child: const Text('重试'),
                 ),
               ],
@@ -278,38 +320,61 @@ class _CatalogPageViewState extends State<CatalogPageView> {
       ),
       toolbarHeight: 68,
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: SegmentedButton<ServiceSource>(
-            showSelectedIcon: false,
-            style:
-                SegmentedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  textStyle: Theme.of(context).textTheme.labelLarge,
-                ).copyWith(
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurface,
-                  ),
-                  textStyle: WidgetStateProperty.resolveWith(
-                    (states) =>
-                        Theme.of(context).textTheme.labelLarge!.copyWith(
-                          fontSize: 14,
-                          fontWeight: states.contains(WidgetState.selected)
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+        if (ServiceSources.builtIns.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ServiceSources.builtIns.length > 2
+                ? SizedBox(
+                    width: 180,
+                    child: DropdownButton<ServiceSource>(
+                      isExpanded: true,
+                      value: _source,
+                      items: [
+                        for (final source in ServiceSources.builtIns)
+                          DropdownMenuItem(
+                            value: source,
+                            child: Text(
+                              source.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (source) {
+                        if (source != null) _switchSource(source);
+                      },
+                    ),
+                  )
+                : SegmentedButton<ServiceSource>(
+                    showSelectedIcon: false,
+                    style:
+                        SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          textStyle: Theme.of(context).textTheme.labelLarge,
+                        ).copyWith(
+                          foregroundColor: WidgetStateProperty.resolveWith(
+                            (states) => states.contains(WidgetState.selected)
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
+                          textStyle: WidgetStateProperty.resolveWith(
+                            (states) => Theme.of(context).textTheme.labelLarge!
+                                .copyWith(
+                                  fontSize: 14,
+                                  fontWeight:
+                                      states.contains(WidgetState.selected)
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                ),
+                          ),
                         ),
+                    segments: [
+                      for (final source in ServiceSources.builtIns)
+                        ButtonSegment(value: source, label: Text(source.name)),
+                    ],
+                    selected: {_source},
+                    onSelectionChanged: (values) => _switchSource(values.first),
                   ),
-                ),
-            segments: [
-              for (final source in ServiceSources.builtIns)
-                ButtonSegment(value: source, label: Text(source.name)),
-            ],
-            selected: {_source},
-            onSelectionChanged: (values) => _switchSource(values.first),
           ),
-        ),
       ],
     ),
     body: Column(

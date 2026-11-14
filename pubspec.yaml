@@ -1,7 +1,7 @@
 name: kazumi
 description: "看客影视播放器"
 publish_to: "none"
-version: 2.4.7+20407
+version: 2.4.9+20409
 
 environment:
   sdk: ">=3.10.0 <4.0.0"

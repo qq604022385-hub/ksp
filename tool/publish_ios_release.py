@@ -12,7 +12,7 @@ import urllib.request
 
 
 def request(method, url, token, data=None, content_type='application/json'):
-    payload = json.dumps(data).encode() if data is not None and content_type == 'application/json' else data
+    payload = json.dumps(data).encode() if data is not None and content_type == 'application/json' and not isinstance(data, (bytes, bytearray)) else data
     headers = {'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer '+token,
                'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': content_type,
                'User-Agent': 'Kanke-iOS-release'}
